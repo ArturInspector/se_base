@@ -267,9 +267,14 @@ class AvitoAIProcessor:
         return self._get_fallback_response(message, ad_data)
     
     def _get_fallback_response(self, message: str, ad_data: dict = None) -> str:
+        import re
         logger.debug("Использование fallback ответа")
         
         message_lower = message.lower()
+        
+        if re.search(r'(\+7|8)?[\s\-]?\(?[0-9]{3}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}', message):
+            logger.debug("Обнаружен телефон в сообщении")
+            return "Спасибо! Номер принят, наш менеджер свяжется с вами в ближайшее время."
         
         if any(phrase in message_lower for phrase in ['1 человек', 'один грузчик', '1 грузчик', 'одного грузчика']):
             return "Здравствуйте! Минимально выезжают 2 грузчика. Для расчета стоимости оставьте номер телефона."
