@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Отчет за {{ report.date.strftime('%d.%m.%Y %H:%M') }}{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Звонки по отчету за {{ report.date.strftime('%d.%m.%Y %H:%M') }}</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <table class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th>Номер клиента</th>
+                                <th>Дата звонка клиента</th>
+                                <th>Дата перезвона от менеджера</th>
+                                <th>Кол-во минут на перезвон</th>
+                                <th>Результат</th>
+                                <th>Сделка</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for recall in recalls_list %}
+                                <tr>
+                                    <td>{{ recall.phone }}</td>
+                                    <td>{{ recall.call_time.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{% if recall.recall_time != None %}{{ recall.recall_time.strftime('%d.%m.%Y %H:%M') }}{% endif %}</td>
+                                    <td>{% if recall.recall_minutes != None %}{{ recall.recall_minutes }}{% endif %}</td>
+                                    <td>
+                                        {% if recall.is_success %}
+                                            <span class="text-success">Положительный</span>
+                                        {% else %}
+                                            <span class="text-danger">Отрицательный</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if recall.bitrix_deal != None %}
+                                            <a href="https://standartexpress.bitrix24.ru/crm/deal/details/{{ recall.bitrix_deal['ID'] }}/" target="_blank">
+                                                Перейти
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 1, "asc" ]],
+            }
+        );
+
+    </script>
+{% endblock %}

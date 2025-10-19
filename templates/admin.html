@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - {{ admin.tg_username }}{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Сообщения от {{ admin.tg_username }}</h4>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <div class="row mb-3">
+                            <div class="col-12 col-md-3">
+                                <input type="datetime-local" class="form-control" id="min_date" {% if min_date != None %}value="{{ min_date }}{% endif %}" placeholder="Дата от">
+                            </div>
+                            <div class="col-12 col-md-3 mm-t-16">
+                                <input type="datetime-local" class="form-control" id="max_date" {% if max_date != None %}value="{{ max_date }}{% endif %}" placeholder="Дата до">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button class="btn btn-primary w-100" onclick="setDate()">Применить</button>
+                            </div>
+                        </div>
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Дата</th>
+                                <th>Город</th>
+                                <th>Текст</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for message in admin.messages %}
+                                <tr>
+                                    <td>{{ int(message.date.timestamp()) }}</td>
+                                    <td>{{ message.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{{ message.city.name }}</td>
+                                    <td>{{ message.message }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        $('.table').DataTable({"aaSorting": [[ 0, "desc" ]]});
+
+        function setDate(){
+            location.href = `/dashboard/admin?tg_id={{ admin.tg_id }}&min_date=${min_date.value}&max_date=${max_date.value}`
+        }
+
+    </script>
+{% endblock %}

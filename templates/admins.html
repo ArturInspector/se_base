@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Менеджеры{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Менеджеры</h4>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <div class="row mb-3">
+                            <div class="col-12 col-md-3">
+                                <input type="datetime-local" class="form-control" id="min_date" {% if min_date != None %}value="{{ min_date }}{% endif %}" placeholder="Дата от">
+                            </div>
+                            <div class="col-12 col-md-3 mm-t-16">
+                                <input type="datetime-local" class="form-control" id="max_date" {% if max_date != None %}value="{{ max_date }}{% endif %}" placeholder="Дата до">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button class="btn btn-primary w-100" onclick="setDate()">Применить</button>
+                            </div>
+                        </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Telegram ID</th>
+                                    <th>Менеджер</th>
+                                    <th>Количество сообщений</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for admin in admins_list %}
+                                    <tr>
+                                        <td>{{ admin.tg_id }}</td>
+                                        <td>{{ admin.tg_username }}</td>
+                                        <td>{{ len(admin.messages) }}</td>
+                                        <td>
+                                            <a href="/dashboard/admin?tg_id={{ admin.tg_id }}">
+                                                <button class="btn btn-sm btn-outline-primary">
+                                                    Подробнее
+                                                </button>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        $('.table').DataTable({"aaSorting": [[ 2, "desc" ]]});
+
+        function setDate(){
+            location.href = `/dashboard/admins?min_date=${min_date.value}&max_date=${max_date.value}`
+        }
+
+    </script>
+{% endblock %}

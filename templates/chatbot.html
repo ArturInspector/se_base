@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Настройки{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <div class="row">
+                <div class="col-12">
+                    <h5>Настройки чат-бота Казани</h5>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <label for="first_message">Первое сообщение</label>
+                                <textarea id="first_message" rows="6" class="form-control">{{ model.first_message }}</textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <label for="second_message">Второе сообщение</label>
+                                <textarea id="second_message" rows="6" class="form-control">{{ model.second_message }}</textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <label for="third_message">Третье сообщение</label>
+                                <textarea id="third_message" rows="6" class="form-control">{{ model.third_message }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button class="btn btn-success w-100" onclick="saveModel()">Сохранить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        function saveModel(){
+            let data = {
+                'first_message': $('#first_message').val(),
+                'second_message': $('#second_message').val(),
+                'third_message': $('#third_message').val(),
+            }
+
+            $.ajax({
+                url: `/dashboard/chatbot`,
+                data: JSON.stringify(data),
+                method: 'post',
+                contentType:"application/json; charset=utf-8",
+                dataType:"json",
+                success: function (msg) {
+                    if(msg['status'] !== 'ok') return alert(msg['message']);
+                    showSuccess('Сохранение', 'Успешно сохранено')
+                },
+                error: function () {
+                    error('Неизвестная серверная ошибка')
+                }
+            });
+        }
+
+    </script>
+{% endblock %}

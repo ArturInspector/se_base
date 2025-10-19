@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Ссылки{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Создание ссылки</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 col-md-3">
+                        <input type="text" class="form-control" placeholder="Название ссылки" id="s_name">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <div class="input-group-text">https://se-bot.ru/i/</div>
+                            <input type="text" class="form-control" id="s_link" placeholder="Ссылка">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button class="btn btn-outline-success w-100" onclick="createLink()">Создать</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>Ссылки</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-condensed">
+                            <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Ссылка</th>
+                                <th>Переходы</th>
+                                <th>Вступления</th>
+                                <th>Конверсия</th>
+                                <th>Покинули группу</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for short in shorts_list %}
+                                <tr id="s_{{ short.id }}">
+                                    <td>{{ short.name }}</td>
+                                    <td>
+                                        <a href="#s_{{ short.id }}" onclick="copyText('https://se-bot.ru/i/{{ short.link }}')">https://se-bot.ru/i/{{ short.link }}</a>
+                                    </td>
+                                    <td>{{ len(short.visits) }}</td>
+                                    <td>{{ len(short.invites) }}</td>
+                                    <td>{{ short.conversion }} %</td>
+                                    <td>{{ len(short.leaves) }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        function createLink(){
+            let data = {
+                'name': s_name.value,
+                'link': s_link.value,
+            }
+
+            $.ajax({
+                url: '/kek/shorts/create',
+                data: data,
+                success: function (msg) {
+                    console.log(msg)
+                    if(msg['status'] !== 'ok'){
+                        return showError(msg['message']);
+                    }
+                    showSuccess(msg['message']);
+                    location.reload();
+                }
+            });
+        }
+
+        function copyText(text){
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    showSuccess('Копирование', 'Скопировано')
+                })
+                .catch(err => {
+                    console.log(err);
+                    alert('Ошибка')
+                });
+        }
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "asc" ]],
+            }
+        );
+
+    </script>
+{% endblock %}

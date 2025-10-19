@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Рассылка{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Текстовая рассылка</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <label for="message_row">Текст рассылки</label>
+                        <textarea id="message_row" rows="6" class="form-control" placeholder="Текст рассылки"></textarea>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 col-md-2">
+                        <button class="btn btn-success w-100" onclick="sendMailer(0)">Отправить</button>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button class="btn btn-outline-success w-100" onclick="sendMailer(1)">Тест</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>Рассылка опроса</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <label for="poll_question">Заголовок опроса</label>
+                        <textarea id="poll_question" rows="6" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div id="answers_list">
+
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <a href="#poll_question" id="" style="cursor: pointer;" onclick="addAnswer()">+ Добавить вариант ответа</a>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <label for="is_anonymous">Анонимный опрос</label>
+                        <select class="form-select" id="is_anonymous">
+                            <option value="0" selected>Нет</option>
+                            <option value="1">Да</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12 col-md-2">
+                        <button class="btn btn-success w-100" onclick="sendPoll(0)">Отправить</button>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button class="btn btn-outline-success w-100" onclick="sendPoll(1)">Тест</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>Результаты опросов</h4>
+        </div>
+    </div>
+
+    {% for poll in polls_list %}
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <b>{{ poll.question }}</b>
+                            <br>
+                            <span style="opacity: 0.7">{{ poll.create_date.strftime('%d.%m.%Y %H:%M') }}</span>
+                        </div>
+                    </div>
+                    <hr>
+                    {% for answer in poll.result %}
+                        <div class="row">
+                            <div class="col-12">
+                                {{ answer }} - {{ poll.result[answer] }}
+                                <br>
+                                <div class="progress mb-4">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ poll.percents[answer] }}%" aria-valuenow="{{ poll.percents[answer] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <a href="/dashboard/poll?id={{ poll.id }}">
+                                <button class="btn btn-sm btn-outline-primary w-100">Подробнее</button>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        function preparePoll(){
+            let data = {
+                'question': poll_question.value,
+                'options': getAnswers(),
+                'is_anonymous': Number(is_anonymous.value),
+            }
+            return data;
+        }
+
+        function getAnswers(){
+            let els = document.getElementsByClassName('answer_row');
+            let answers = [];
+
+            for(let i = 0; i < els.length; i++) answers.push(els[i].value);
+            return answers;
+        }
+
+        function addAnswer(){
+            if(getAnswers().length >= 10) return showError('Достигнуто максимальное число ответов');
+            let row = createBlock('div', 'row mt-3');
+            let div = createBlock('div', 'col-12');
+            let d = createBlock('div', '');
+            let input = createBlock('input', 'form-control answer_row');
+            let remove_icon = createBlock('i', 'mdi mdi-trash-can')
+            input.placeholder = 'Вариант ответа';
+
+            d.style.display = 'flex';
+            d.style.height = '40px';
+            d.style.alignItems = 'center';
+            remove_icon.style.marginRight = '8px';
+            remove_icon.style.cursor = 'pointer';
+            remove_icon.onclick = function (){
+                $(row).remove();
+            }
+
+            d.append(remove_icon, input);
+            div.append(d);
+            row.append(div);
+            answers_list.append(row);
+        }
+
+        function sendPoll(is_test){
+            if(is_test === 1){
+                showConfirm('Рассылка опроса', 'Вы уверены, что хотите провести рассылку опроса? Сообщение будет отправлено в тестовую группу', 'Да',
+                    function (){
+                        let data = preparePoll();
+                        data['is_test'] = true;
+
+                        $.ajax({
+                            url: '/dashboard/poll',
+                            data: JSON.stringify(data),
+                            method: 'post',
+                            contentType:"application/json; charset=utf-8",
+                            dataType:"json",
+                            success: function (msg) {
+                                console.log(msg)
+                                if(msg['status'] !== 'ok'){
+                                    return showError(msg['message']);
+                                }
+                                showSuccess('Рассылка опроса', msg['message']);
+                            }
+                        });
+                    })
+            }
+            else{
+                showConfirm('Рассылка опроса', 'Вы уверены, что хотите провести рассылку опроса?', 'Да',
+                    function (){
+                        let password = prompt('Введите пароль')
+                        let data = preparePoll();
+                        data['is_test'] = false;
+                        data['password'] = password;
+
+                        $.ajax({
+                            url: '/dashboard/poll',
+                            data: JSON.stringify(data),
+                            method: 'post',
+                            contentType:"application/json; charset=utf-8",
+                            dataType:"json",
+                            success: function (msg) {
+                                console.log(msg)
+                                if(msg['status'] !== 'ok'){
+                                    return showError(msg['message']);
+                                }
+                                showSuccess('Рассылка опроса', msg['message']);
+                            }
+                        });
+                    })
+            }
+        }
+
+        function sendMailer(is_test){
+            if(is_test === 1){
+                showConfirm('Рассылка', 'Вы уверены, что хотите провести рассылку? Сообщение будет отправлено в тестовую группу', 'Да',
+                    function (){
+                        let data = {
+                            'text': message_row.value,
+                            'is_test': 1,
+                            'password': '',
+                        }
+
+                        $.ajax({
+                            url: '/dashboard/mailer',
+                            data: data,
+                            method: 'post',
+                            success: function (msg) {
+                                console.log(msg)
+                                if(msg['status'] !== 'ok'){
+                                    return showError(msg['message']);
+                                }
+                                showSuccess('Рассылка', msg['message']);
+                            }
+                        });
+                    })
+            }
+            else{
+                showConfirm('Рассылка', 'Вы уверены, что хотите провести рассылку?', 'Да',
+                    function (){
+                        let password = prompt('Введите пароль')
+                        let data = {
+                            'text': message_row.value,
+                            'is_test': 0,
+                            'password': password,
+                        }
+
+                        $.ajax({
+                            url: '/dashboard/mailer',
+                            data: data,
+                            method: 'post',
+                            success: function (msg) {
+                                console.log(msg)
+                                if(msg['status'] !== 'ok'){
+                                    return showError(msg['message']);
+                                }
+                                showSuccess('Рассылка', msg['message']);
+                            }
+                        });
+                    })
+            }
+        }
+
+    </script>
+{% endblock %}

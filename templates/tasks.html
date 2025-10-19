@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Сообщения WhatsApp{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12" style="display: flex; justify-content: space-between">
+            <h4>Уведомление WhatsApp</h4>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#createMessageBox">Добавить уведомление</button>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Статус</th>
+                                <th>Кол-во минут</th>
+                                <th>Текст</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for task in tasks_list %}
+                                <tr>
+                                    <td>{{ task.id }}</td>
+                                    <td>{{ Member.get_status_by_id(task.member_status) }}</td>
+                                    <td>{{ task.minutes }}</td>
+                                    <td>{{ task.message.replace('\n', '<br>')|safe }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="removeMessage({{ task.id }})">Удалить</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createMessageBox" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавление уведомления</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="t_member_status">Статус</label>
+                            <select id="t_member_status" class="form-select">
+                                <option value="3" selected>Указал телефон</option>
+                                <option value="4">Указал город</option>
+                                <option value="5">Подтвердил данные</option>
+                                <option value="6">Получил ссылку</option>
+                                <option value="10">В группе</option>
+                                <option value="11">Покинул группу</option>
+                                <option value="15">Ожидает добавления города</option>
+                                <option value="16">Ошибка создания ссылки</option>
+                                <option value="-71">Звонок от Регины</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="t_minutes">Кол-во минут с получения статуса</label>
+                            <input type="number" id="t_minutes" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="t_message">Текст сообщения</label>
+                            <textarea id="t_message" rows="4" class="form-control"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="createMessage()">Далее</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+        function createMessage(){
+            let data = {
+                'member_status': $('#t_member_status').val(),
+                'minutes': $('#t_minutes').val(),
+                'message': $('#t_message').val(),
+            }
+
+            $.ajax({
+                url: `/kek/shortcuts/task/create`,
+                data: JSON.stringify(data),
+                method: 'post',
+                contentType:"application/json; charset=utf-8",
+                dataType:"json",
+                success: function (msg) {
+                    if(msg['status'] !== 'ok') return alert(msg['message']);
+                    location.reload()
+                },
+                error: function () {
+                    error('Неизвестная серверная ошибка')
+                }
+            });
+        }
+
+        function removeMessage(message_id){
+            showConfirm('Удаление', 'Вы действительно хотите удалить уведомление', 'Да', function (){
+                let data = {
+                    'id': message_id,
+                }
+
+                $.ajax({
+                    url: `/kek/shortcuts/task/remove`,
+                    data: data,
+                    method: 'get',
+                    success: function (msg) {
+                        if(msg['status'] !== 'ok') return alert(msg['message']);
+                        location.reload()
+                    },
+                    error: function () {
+                        error('Неизвестная серверная ошибка')
+                    }
+                });
+            })
+        }
+
+    </script>
+{% endblock %}

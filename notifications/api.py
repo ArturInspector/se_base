@@ -1,0 +1,27 @@
+from db import Session
+from errors import *
+from .entities import *
+
+
+def get_users(session=None):
+    if session is None:
+        with Session() as session:
+            tg_users = session.query(TGUser).all()
+    else:
+        tg_users = session.query(TGUser).all()
+    return tg_users
+
+
+def get_user_by_tg_id(tg_id, session=None):
+    if session is None:
+        with Session() as session:
+            tg_user = session.query(TGUser).filter(TGUser.tg_id == tg_id).first()
+    else:
+        tg_user = session.query(TGUser).filter(TGUser.tg_id == tg_id).first()
+    return tg_user
+
+
+def create_tg_user(tg_id):
+    with Session() as session:
+        session.add(TGUser(tg_id=tg_id))
+        session.commit()

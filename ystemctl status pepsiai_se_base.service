@@ -1,0 +1,67 @@
+  [0;4mUNIT                                           LOAD   ACTIVE     SUB          DESCRIPTION                             [0m
+  accounts-daemon.service                        loaded active     running      Accounts Service                        
+  analitik_bot.service                           loaded activating auto-restart SE ANALITIK - Telegram Bot              
+[0;1;31m●[0m [0;1;31mapparmor.service                              [0m loaded [0;1;31mfailed     failed      [0m AppArmor initialization                 
+  apport.service                                 loaded active     exited       LSB: automatic crash report generation  
+  atd.service                                    loaded active     running      Deferred execution scheduler            
+  beget-agent.service                            loaded active     running      Beget VPS guest agent                   
+  blk-availability.service                       loaded active     exited       Availability of block devices           
+  cloud-config.service                           loaded active     exited       Apply the settings specified in cloud-config
+  cloud-final.service                            loaded active     exited       Execute cloud user/final scripts        
+  cloud-init-local.service                       loaded active     exited       Initial cloud-init job (pre-networking) 
+  cloud-init.service                             loaded active     exited       Initial cloud-init job (metadata service crawler)
+  console-setup.service                          loaded active     exited       Set console font and keymap             
+  containerd.service                             loaded active     running      containerd container runtime            
+  cron.service                                   loaded active     running      Regular background program processing daemon
+  dbus.service                                   loaded active     running      D-Bus System Message Bus                
+  docker.service                                 loaded active     running      Docker Application Container Engine     
+  fail2ban.service                               loaded active     running      Fail2Ban Service                        
+  getty@tty1.service                             loaded active     running      Getty on tty1                           
+  grub-common.service                            loaded active     exited       LSB: Record successful boot for GRUB    
+  ifup@eth0.service                              loaded active     exited       ifup for eth0                           
+  irqbalance.service                             loaded active     running      irqbalance daemon                       
+  keyboard-setup.service                         loaded active     exited       Set the console keyboard layout         
+  kmod-static-nodes.service                      loaded active     exited       Create list of required static device nodes for the current kernel
+  lvm2-lvmetad.service                           loaded active     running      LVM2 metadata daemon                    
+  lvm2-monitor.service                           loaded active     exited       Monitoring of LVM2 mirrors, snapshots etc. using dmeventd or progress polling
+  mysql.service                                  loaded active     running      MySQL Community Server                  
+  networkd-dispatcher.service                    loaded active     running      Dispatcher daemon for systemd-networkd  
+  networking.service                             loaded active     exited       Raise network interfaces                
+  NetworkManager-wait-online.service             loaded active     exited       Network Manager Wait Online             
+  NetworkManager.service                         loaded active     running      Network Manager                         
+  nginx.service                                  loaded active     running      A high performance web server and a reverse proxy server
+  pepsiai_se_base.service                        loaded active     running      PepsiAI SEBase                          
+  php7.2-fpm.service                             loaded active     running      The PHP 7.2 FastCGI Process Manager     
+  pm2-root.service                               loaded active     running      PM2 process manager                     
+  polkit.service                                 loaded active     running      Authorization Manager                   
+  postfix.service                                loaded active     exited       Postfix Mail Transport Agent            
+  postfix@-.service                              loaded active     running      Postfix Mail Transport Agent (instance -)
+  postgresql.service                             loaded active     exited       PostgreSQL RDBMS                        
+  postgresql@10-main.service                     loaded active     running      PostgreSQL Cluster 10-main              
+  recruit.service                                loaded active     running      recruit                                 
+  redis-server.service                           loaded active     running      Advanced key-value store                
+  resolvconf.service                             loaded active     exited       Nameserver information manager          
+  rsyslog.service                                loaded active     running      System Logging Service                  
+[0;1;31m●[0m [0;1;31mse_base.service                               [0m loaded [0;1;31mfailed     failed      [0m SEBase                                  
+  se_calls.service                               loaded active     running      se_calls                                
+  se_maxim.service                               loaded active     running      SE_Maxim                                
+  se_maxim_test.service                          loaded active     running      SE_MaximTest                            
+  se_members.service                             loaded active     running      SE_Members                              
+  se_scheduler.service                           loaded active     running      SE_Scheduler                            
+  se_selfemployers.service                       loaded active     running      SE_Selfemployers                        
+  serial-getty@ttyS0.service                     loaded active     running      Serial Getty on ttyS0                   
+  setvtrgb.service                               loaded active     exited       Set console scheme                      
+  ssh.service                                    loaded active     running      OpenBSD Secure Shell server             
+  sysstat.service                                loaded active     exited       Resets System Activity Data Collector   
+  systemd-fsck@dev-disk-by\x2dlabel-UEFI.service loaded active     exited       File System Check on /dev/disk/by-label/UEFI
+  systemd-journal-flush.service                  loaded active     exited       Flush Journal to Persistent Storage     
+  systemd-journald.service                       loaded active     running      Journal Service                         
+  systemd-logind.service                         loaded active     running      Login Service                           
+  systemd-modules-load.service                   loaded active     exited       Load Kernel Modules                     
+  systemd-networkd-wait-online.service           loaded active     exited       Wait for Network to be Configured       
+  systemd-networkd.service                       loaded active     running      Network Service                         
+  systemd-random-seed.service                    loaded active     exited       Load/Save Random Seed                   
+  systemd-remount-fs.service                     loaded active     exited       Remount Root and Kernel File Systems    
+  systemd-resolved.service                       loaded active     running      Network Name Resolution                 
+  systemd-sysctl.service                         loaded active     exited       Apply Kernel Variables                  
+  systemd-tim

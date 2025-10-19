@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Города{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Список городов</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Статус</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+                ajax: '/kek/cities/get',
+                deferRender: true,
+            }
+        );
+
+    </script>
+{% endblock %}

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <title>Работе в Стандарт Экспресс</title>
+    <link rel="stylesheet" href="../static/chat.css">
+</head>
+<body>
+
+<div id="chat-wrapper" style="display: none;">
+    <div class="container-fluid" style="height: 100%;">
+        <div class="row" style="height: 100%;">
+            <div class="col-12 col-md-6 offset-md-3 col-lg-4 offset-lg-4" style="height: 100%;">
+                <div id="chat_box">
+                    <div class="chat-header">
+                        <img src="../static/images/logo.jpg" alt="" class="rounded-circle">
+                        <span>Работа в Стандарт Экспресс</span>
+                    </div>
+                    <div id="empty-chat">
+                        Здравствуйте!
+                        <br><br>
+                        Мы предоставляем разовую подработку и постоянную работу.
+<br><br>
+                        В основном погрузка/разгрузка.
+<br><br>
+                        Выплаты от 250 рублей в час (зависит от сложности работ, удаленности, времени суток).<br>
+                        Минимально оплачиваем 2 часа.<br>
+                        Москва и Санкт-Петербург 4 часа.<br>
+<br>
+                        Выплаты ЕЖЕДНЕВНЫЕ ПОСЛЕ ОКОНЧАНИЯ РАБОТ на вашу банковскую карту.<br>
+<br>
+                        Актуальные заказы отправляются в Телеграмм<br>
+                        если Вам подходит, откликаетесь.<br>
+<br>
+                        ЧТОБЫ ПРОДОЛЖИТЬ ЖМИТЕ КНОПКУ «ДАЛЕЕ»<br>
+
+                        <button id="start_button" class="btn btn-dark" onclick="createDialog()">Далее</button>
+                    </div>
+                    <div id="chat" style="display: none;">
+                        <!--
+                        <div class="message_box left">
+                            <div class="message">
+                                Шла Саша по шоссе и сосала сушку.
+                            </div>
+                        </div>
+                        -->
+                    </div>
+                    <div id="chat-footer" style="display: none;">
+                        <form onsubmit="sendMessage()">
+                            <input type="text" placeholder="Сообщение" id="text_row">
+                            <button class="btn btn-secondary" type="submit">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script>
+
+    {% if dialog_token == None %}
+        let dialog_token = null;
+        let is_hide = false;
+        $('#chat-wrapper').fadeIn();
+    {% else %}
+        let dialog_token = '{{ dialog_token }}';
+        let is_hide = true;
+        loadDialog();
+    {% endif %}
+
+    let socket = null;
+    let loaded_messages = [];
+
+    function sendMessage(message=''){
+        event.stopPropagation();
+        event.preventDefault();
+
+        if(message.length > 0) text_row.value = message;
+
+        if(text_row.value.length === 0) {
+            alert('Введите текст')
+            return false;
+        }
+
+        let data = {
+            'dialog_token': dialog_token,
+            'text': text_row.value
+        }
+
+        text_row.value = '';
+        $('.buttons_list').remove();
+
+        $.ajax({
+            url: `/kek/dialogs/in`,
+            data: JSON.stringify(data),
+            method: 'post',
+            contentType:"application/json; charset=utf-8",
+            dataType:"json",
+            success: function (msg) {
+                if(msg['status'] !== 'ok') return alert(msg['message']);
+                drawMessage(msg['message'], true);
+            },
+            error: function () {
+                error('Неизвестная серверная ошибка')
+            }
+        });
+
+        return false;
+    }
+
+    function createDialog(){
+        if(dialog_token !== null) return alert('Диалог уже был создан')
+        $.ajax({
+            url: `/kek/dialogs/create`,
+            data: JSON.stringify(getQueryParams()),
+            method: 'post',
+            contentType:"application/json; charset=utf-8",
+            dataType:"json",
+            success: function (msg) {
+                if(msg['status'] !== 'ok') return alert(msg['message']);
+                dialog_token = msg['dialog_token'];
+                loadDialog()
+            },
+            error: function () {
+                error('Неизвестная серверная ошибка')
+            }
+        });
+    }
+
+    function loadDialog(){
+        let data = {
+            'dialog_token': dialog_token,
+        }
+
+        $.ajax({
+            url: `/kek/dialogs/get`,
+            data: data,
+            method: 'get',
+            success: function (msg) {
+                if(msg['status'] !== 'ok') return alert(msg['message']);
+                drawMessages(msg['messages']);
+            },
+            error: function () {
+                error('Неизвестная серверная ошибка')
+            }
+        });
+    }
+
+    function drawMessages(messages){
+        $('#empty-chat').css('display', 'none');
+        $('#chat').css('display', 'flex');
+        $('#chat-footer').css('display', 'flex');
+        $('.message_box').remove();
+
+        for(let i = 0; i < messages.length; i++){
+            let msg = messages[i];
+            let buttons = false;
+            if(i === messages.length - 1) buttons = true;
+            drawMessage(msg, buttons);
+        }
+
+        if(is_hide) {
+            $('#chat-wrapper').fadeIn();
+            is_hide = false;
+        }
+
+        if(socket === null){
+            socket = io('/s/dialogs');
+            socket.emit('subscribe', {'token': dialog_token});
+
+            socket.on('message', function (data){
+                console.log('update_date', data)
+                drawMessage(data['message'], true);
+            })
+        }
+        chatDown();
+    }
+
+    function drawMessage(msg, buttons=false){
+        console.log(msg, buttons);
+        let message_box = createBlock('div', msg['is_system'] ? 'message_box left' : 'message_box right');
+        let message = createBlock('div', 'message', msg['text']);
+        message_box.append(message);
+        if(buttons === true && msg['buttons'].length > 0){
+            let buttons_list = createBlock('div', 'buttons_list');
+            for(let i = 0; i < msg['buttons'].length; i++){
+                let btn = createBlock('button', 'btn btn-warning', msg['buttons'][i]);
+                btn.onclick = function (){
+                    sendMessage(msg['buttons'][i])
+                }
+                buttons_list.append(btn);
+            }
+            message_box.append(buttons_list);
+        }
+        if(loaded_messages.includes(msg['token'])) return;
+        loaded_messages.push(msg['token'])
+        chat.append(message_box);
+        chatDown();
+    }
+
+    function getQueryParams(){
+        try{
+            let search = location.search.substring(1);
+            return JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}');
+        }
+        catch (e) {
+            return {}
+        }
+    }
+
+    function createBlock(tag_name, class_name='', content=null){
+        let box = document.createElement(tag_name);
+        box.className = class_name;
+        if(content !== null) box.innerHTML = content;
+        return box;
+    }
+
+    function chatDown(){
+        let objDiv = document.getElementById("chat");
+        objDiv.scrollTop = objDiv.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Главная{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Статистика</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-7 col-12">
+            <div class="card card-body">
+                <div id="statuses"></div>
+            </div>
+        </div>
+        <div class="col-md-5 col-12">
+            <div class="card card-body">
+                <div id="sources"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>Список пользователей</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Источник</th>
+                                <th>Дата добавления</th>
+                                <th>Телефон</th>
+                                <th>Имя</th>
+                                <th>Статус</th>
+                                <th>Чат ID</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        loadGraphics();
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+                ajax: '/kek/members/get',
+                deferRender: true,
+                columnDefs: [
+                    {
+                        targets: -1,
+                        data: null,
+                        defaultContent: '<button class="btn btn-sm btn-outline-primary cbw">Управление</button>',
+                    },
+                ]
+            }
+        );
+        $('.table').on( 'draw.dt', function () {
+            let btns = $('button.cbw');
+            for(let i = 0; i < btns.length; i++){
+                let data = table.row($(btns[i]).parents('tr')).data();
+                btns[i].onclick = function (){
+                    location.href = '/dashboard/member?id=' + data[0]
+                }
+            }
+        } );
+
+        function loadGraphics(){
+            $.ajax({
+                url: '/kek/members/data',
+                success: function (msg) {
+                    console.log(msg)
+                    if(msg['status'] !== 'ok'){
+                        return alert(msg['message']);
+                    }
+                    drawGraphics(msg['data']);
+                }
+            });
+        }
+
+        function drawGraphics(data){
+            var options = {
+                series: data['statuses']['series'],
+                chart: {
+                    type: 'bar',
+                    height: 350
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '55%',
+                        endingShape: 'rounded'
+                    },
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    show: true,
+                    width: 2,
+                    colors: ['transparent']
+                },
+                xaxis: {
+                    categories: data['statuses']['categories'],
+                },
+                fill: {
+                    opacity: 1
+                },
+                theme: {
+                    mode: 'dark'
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#statuses"), options);
+            chart.render();
+
+
+            var options2 = {
+                series: data['sources']['series'],
+                theme: {
+                    mode: 'dark'
+                },
+                chart: {
+                    width: 380,
+                    type: 'pie',
+                },
+                labels: data['sources']['labels'],
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            width: 200
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }]
+            };
+
+            var chart2 = new ApexCharts(document.querySelector("#sources"), options2);
+            chart2.render();
+        }
+
+    </script>
+{% endblock %}

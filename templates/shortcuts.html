@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Сообщения WhatsApp{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12" style="display: flex; justify-content: space-between">
+            <h4>Сообщения WhatsApp</h4>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#createMessageBox">Отправить сообщение</button>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата создания</th>
+                                <th>Дата отправки</th>
+                                <th>Номер телефона</th>
+                                <th>Текст</th>
+                                <th>Тип WhatsApp</th>
+                                <th>Статус</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for message in messages_list %}
+                                <tr>
+                                    <td>{{ message.id }}</td>
+                                    <td>{{ message.create_date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{% if message.finish_date != None %}{{ message.finish_date.strftime('%d.%m.%Y %H:%M') }}{% endif %}</td>
+                                    <td><a href="tel:+7{{ message.phone }}">+7{{ message.phone }}</a></td>
+                                    <td>{{ message.message }}</td>
+                                    <td>
+                                        {% if message.is_business %}
+                                            <span class="text-success">Регина NPS</span>
+                                        {% else %}
+                                            Обычный
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if message.is_send %}
+                                            Отправлен
+                                        {% else %}
+                                            <span class="text-warning">Ожидает отправки</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="removeMessage({{ message.id }})">Удалить</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createMessageBox" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Отправка сообщения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="c_phone">Номер телефона</label>
+                            <input type="text" class="form-control" id="c_phone">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="c_is_business">Тип WhatsApp</label>
+                            <select id="c_is_business" class="form-select">
+                                <option value="0" selected>Обычный</option>
+                                <option value="1">Регина NPS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="c_message">Текст сообщения</label>
+                            <textarea id="c_message" rows="4" class="form-control"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="createMessage()">Далее</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+        function createMessage(){
+            let data = {
+                'phone': $('#c_phone').val(),
+                'message': $('#c_message').val(),
+                'is_business': $('#c_is_business').val(),
+            }
+
+            $.ajax({
+                url: `/kek/shortcuts/create`,
+                data: JSON.stringify(data),
+                method: 'post',
+                contentType:"application/json; charset=utf-8",
+                dataType:"json",
+                success: function (msg) {
+                    if(msg['status'] !== 'ok') return alert(msg['message']);
+                    location.reload()
+                },
+                error: function () {
+                    error('Неизвестная серверная ошибка')
+                }
+            });
+        }
+
+        function removeMessage(message_id){
+            showConfirm('Удаление', 'Вы действительно хотите удалить сообщение', 'Да', function (){
+                let data = {
+                    'id': message_id,
+                }
+
+                $.ajax({
+                    url: `/kek/shortcuts/remove`,
+                    data: data,
+                    method: 'get',
+                    success: function (msg) {
+                        if(msg['status'] !== 'ok') return alert(msg['message']);
+                        location.reload()
+                    },
+                    error: function () {
+                        error('Неизвестная серверная ошибка')
+                    }
+                });
+            })
+        }
+
+    </script>
+{% endblock %}

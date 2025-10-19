@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Спам{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Спам-фильтр</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 col-md-3">
+                        <label for="f_status">Статус работы</label>
+                        <select id="f_status" class="form-select">
+                            <option value="0" {% if model.status == False %}selected{% endif %}>Отключено</option>
+                            <option value="1" {% if model.status == True %}selected{% endif %}>Включено</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="">Список слов</label>
+                        <button class="btn btn-secondary w-100" data-bs-toggle="modal" data-bs-target="#wordsBox">Редактировать</button>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for=""> </label>
+                        <button class="btn btn-outline-success w-100" onclick="saveModel()">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>История блокировок</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата</th>
+                                <th>Группа</th>
+                                <th>Пользователь</th>
+                                <th>Сообщение</th>
+                                <th>Стоп-слова</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for block in blocks_list %}
+                                <tr>
+                                    <td>{{ block.id }}</td>
+                                    <td>{{ block.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{{ block.tg_group_name }}</td>
+                                    <td>[{{ block.tg_id }}]: {{ block.tg_first_name }} {% if block.tg_last_name != None %}{{ block.tg_last_name }}{% endif %} {% if block.tg_username != None %}{{ block.tg_username }}{% endif %}</td>
+                                    <td>{{ block.message }}</td>
+                                    <td>{{ block.words_list }}</td>
+                                    <td>
+                                        <button class="btn btn-secondary btn-sm" onclick="unblock({{ block.tg_group_id }}, {{ block.tg_id }})">Разблокировать</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="wordsBox" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Список стоп-слов</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row ">
+                        <div class="col-12">
+                            <label for="f_words">Стоп-слова, через запятую</label>
+                            <textarea id="f_words" rows="6" class="form-control">{{ spam_words }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+        function saveModel(){
+            let data = {
+                'status': $('#f_status').val(),
+                'words': $('#f_words').val()
+            }
+
+            $.ajax({
+                url: `/kek/spam/model/update`,
+                data: data,
+                method: 'post',
+                success: function (msg) {
+                    if(msg['status'] !== 'ok') return alert(msg['message']);
+                    location.reload()
+                },
+                error: function () {
+                    error('Неизвестная серверная ошибка')
+                }
+            });
+        }
+
+        function unblock(chat_id, user_id){
+            let data = {
+                'chat_id': chat_id,
+                'user_id': user_id
+            }
+
+            $.ajax({
+                url: `/kek/spam/unblock`,
+                data: data,
+                success: function (msg) {
+                    if(msg['status'] !== 'ok') return alert(msg['message']);
+                    showSuccess('Разблокировка', 'Пользователь был разблокирован')
+                },
+                error: function () {
+                    error('Неизвестная серверная ошибка')
+                }
+            });
+        }
+
+    </script>
+{% endblock %}

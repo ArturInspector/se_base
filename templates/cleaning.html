@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Чистка групп{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Чистка групп</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <button class="btn btn-outline-primary">
+                            Загрузить данные по всем городам
+                        </button>
+                        <button class="btn btn-outline-primary">
+                            Очистить все города
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Город</th>
+                                <th>ID Группы</th>
+                                <th>Кол-во пользователей</th>
+                                <th>Кол-во пользователей, которые не заходили месяц</th>
+                                <th>Кол-во удаленных пользователей</th>
+                                <th>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for city in cities_list %}
+                                <tr id="g_{{ city.group_id }}">
+                                    <td>{{ city.name }}</td>
+                                    <td>{{ city.group_id }}</td>
+                                    <td class="users_all">---</td>
+                                    <td class="offline_users">---</td>
+                                    <td class="deleted_users">---</td>
+                                    <td style="white-space: nowrap">
+                                        <button id='load_{{ city.group_id }}' class="btn btn-sm btn-outline-primary" onclick="loadData({{ city.group_id }}, this)">Получить данные</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="loadTxt({{ city.group_id }})" style="margin-left: 8px">Получить список</button>
+                                        <button id='clean_{{ city.group_id }}' class="btn btn-sm btn-outline-success clean" style="margin-left: 8px" disabled onclick="clearCity({{ city.group_id }}, this)">Провести очистку</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        function loadData(group_id, el){
+            let data = {
+                'group_id': group_id,
+            }
+
+            el.disabled = true;
+
+            $.ajax({
+                url: '/kek/tg/get',
+                data: data,
+                success: function (msg) {
+                    el.disabled = false;
+                    if(msg['status'] !== 'ok'){
+                        alert(msg['message'])
+                    }
+                    updateGroupData(msg['data'])
+                }
+            });
+        }
+
+        function clearCity(group_id, el){
+            let data = {
+                'group_id': group_id,
+            }
+
+            el.disabled = true;
+
+            $.ajax({
+                url: '/kek/tg/clear',
+                data: data,
+                success: function (msg) {
+                    el.disabled = false;
+                    if(msg['status'] !== 'ok'){
+                        alert(msg['message'])
+                    }
+                    updateGroupData(msg['data'])
+                }
+            });
+        }
+
+        function updateGroupData(data){
+            $('#g_' + data['group_id'] + ' > .users_all').text(data['users_count']);
+            $('#g_' + data['group_id'] + ' > .offline_users').text(data['offline_users']);
+            $('#g_' + data['group_id'] + ' > .deleted_users').text(data['deleted_users']);
+            $('#load_' + data['group_id']).prop('disabled', true);
+            $('#clean_' + data['group_id']).prop('disabled', false);
+        }
+
+        function loadTxt(group_id){
+            location.href = '/kek/tg/get/txt?group_id=' + group_id
+        }
+
+    </script>
+{% endblock %}

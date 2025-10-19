@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Отчет за {{ report.date.strftime('%d.%m.%Y %H:%M') }}{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <div class="row">
+                <div class="col-12">
+                    <h4>Отчет за {{ report.date.strftime('%d.%m.%Y %H:%M') }}</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td>Дата</td>
+                                        <td>{{ report.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Уникальные звонки за сутки (билайн/битрикс)</td>
+                                        <td>{{ report.unique_calls.beeline_calls }} / {{ report.unique_calls.bitrix_calls }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Уникальные звонки с 8 до 22 (билайн/битрикс)</td>
+                                        <td>{{ report.unique_calls_8_20.beeline_calls }} / {{ report.unique_calls_8_20.bitrix_calls }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Форма сайта (SEO/контекст)</td>
+                                        <td>{{ report.source_site.seo }} / {{ report.source_site.context }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>LeadBack (SEO/контекст)</td>
+                                        <td>{{ report.source_leadback.seo }} / {{ report.source_leadback.context }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Avito (Звонки/сообщения)</td>
+                                        <td>{{ report.source_avito.calls }} / {{ report.source_avito.chats }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="row">
+                <div class="col-12">
+                    <h4>Обработка пропущенных</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td>0-10 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=0&max=10&is_success=1&id={{ report.id }}">{{ len(s_recalls_0_10) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=0&max=10&is_success=0&id={{ report.id }}">{{ len(f_recalls_0_10) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>10-20 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=10&max=20&is_success=1&id={{ report.id }}">{{ len(s_recalls_10_20) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=10&max=20&is_success=0&id={{ report.id }}">{{ len(f_recalls_10_20) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>20-30 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=20&max=30&is_success=1&id={{ report.id }}">{{ len(s_recalls_20_30) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=20&max=30&is_success=0&id={{ report.id }}">{{ len(f_recalls_20_30) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>30-40 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=30&max=40&is_success=1&id={{ report.id }}">{{ len(s_recalls_30_40) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=30&max=40&is_success=0&id={{ report.id }}">{{ len(f_recalls_30_40) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>40-50 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=40&max=50&is_success=1&id={{ report.id }}">{{ len(s_recalls_40_50) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=40&max=50&is_success=0&id={{ report.id }}">{{ len(f_recalls_40_50) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>50-60 минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=50&max=60&is_success=1&id={{ report.id }}">{{ len(s_recalls_50_60) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=50&max=60&is_success=0&id={{ report.id }}">{{ len(f_recalls_50_60) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>60+ минут (Положительные / отрицательные)</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=60&max=100000&is_success=1&id={{ report.id }}">{{ len(s_recalls_60) }}</a>
+                                            /
+                                            <a href="/dashboard/recalls?min=60&max=10000&is_success=0&id={{ report.id }}">{{ len(f_recalls_60) }}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Вообще не перезвонили</td>
+                                        <td>
+                                            <a href="/dashboard/recalls?min=-1&max=-1&is_success=0&id={{ report.id }}">{{ len(recalls_none) }}</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+    </script>
+{% endblock %}

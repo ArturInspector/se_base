@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - {{ member.id }}{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12 col-md-5">
+            <div class="row">
+                <div class="col-12">
+                    <h4>Информация о пользователе</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-12 table-responsive" style="border: none">
+                                <table class="table">
+                                    <tr>
+                                        <th>ID</th>
+                                        <td>{{ member.id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Имя</th>
+                                        <td>{{ member.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Возраст</th>
+                                        <td>{{ member.age }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Город</th>
+                                        <td>{% if city != None %}{{ city.name }}{% else %}Не указан{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Телефон</th>
+                                        <td>+7{{ member.phone }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Источник</th>
+                                        <td>{{ member.get_source() }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Статус</th>
+                                        <td>{{ member.get_status() }}</td>
+                                    </tr>
+                                    {% if member.source_id == 1 %}
+                                        <tr>
+                                            <th>avito_chat_id</th>
+                                            <td>{{ member.avito_chat_id }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>avito_user_id</th>
+                                            <td>{{ member.avito_user_id }}</td>
+                                        </tr>
+                                    {% endif %}
+                                    {% if member.source_id == 2 %}
+                                        <tr>
+                                            <th>whatsapp_id</th>
+                                            <td>{{ member.whatsapp_chat_id }}</td>
+                                        </tr>
+                                    {% endif %}
+                                    {% if member.source_id == 4 %}
+                                        <tr>
+                                            <th>Диалог</th>
+                                            <td>
+                                                <a href="/dashboard/dialog/{{ member.dialog_token }}" target="_blank">
+                                                    <button class="btn btn-sm btn-outline-primary">Открыть</button>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                    <tr>
+                                        <th>tg_id</th>
+                                        <td>{{ member.telegram_id }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-7">
+            <div class="row">
+                <div class="col-12">
+                    <h4>События</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-12 table-responsive" style="border: none">
+                                <table class="table" id="events_list">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Дата</th>
+                                        <th>Событие</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for event in events_list %}
+                                        <tr>
+                                            <td>{{ event.id }}</td>
+                                            <td>{{ event.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                            <td>{{ event.event }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <h4>Ссылки пользователя</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none">
+                        <table class="table" id="links_list">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата</th>
+                                <th>Ссылка</th>
+                                <th>Статус</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for link in links_list %}
+                                <tr>
+                                    <td>{{ link.id }}</td>
+                                    <td>{{ link.create_date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{{ link.link }}</td>
+                                    <td>{{ link.get_status() }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        $('#events_list').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+        $('#links_list').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+
+    </script>
+{% endblock %}

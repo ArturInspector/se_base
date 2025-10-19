@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta charset="utf-8" />
+    <title>{% block title %}SEMembers{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="{{ config.PROJECT_NAME }}" name="description" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="../static/assets/images/favicon.ico">
+
+    <link href="../static/assets/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css">
+
+    <!-- Sweet Alert-->
+    <link href="../static/assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Responsive Table css -->
+    <link href="../static/assets/libs/admin-resources/rwd-table/rwd-table.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Bootstrap Css -->
+    <link href="../static/assets/css/bootstrap-dark.min.css" rel="stylesheet" type="text/css" />
+    <!-- Icons Css -->
+    <link href="../static/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+    <!-- App Css-->
+    <link href="../static/assets/css/app-dark.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- DataTables -->
+    <link href="../static/assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+    <link href="../static/assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+    <link href="../static/assets/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css">
+    <link href="../static/assets/css/select2-adminlte.css" rel="stylesheet" type="text/css">
+
+    <script src="https://unpkg.com/imask"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <style>
+        .loader,
+        .loader:before,
+        .loader:after {
+            background: #ffffff;
+            -webkit-animation: load1 1s infinite ease-in-out;
+            animation: load1 1s infinite ease-in-out;
+            width: 1em;
+            height: 4em;
+        }
+        .loader {
+            color: #ffffff;
+            text-indent: -9999em;
+            margin: 88px auto;
+            position: relative;
+            font-size: 11px;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation-delay: -0.16s;
+            animation-delay: -0.16s;
+        }
+        .loader:before,
+        .loader:after {
+            position: absolute;
+            top: 0;
+            content: '';
+        }
+        .loader:before {
+            left: -1.5em;
+            -webkit-animation-delay: -0.32s;
+            animation-delay: -0.32s;
+        }
+        .loader:after {
+            left: 1.5em;
+        }
+        @-webkit-keyframes load1 {
+            0%,
+            80%,
+            100% {
+                box-shadow: 0 0;
+                height: 4em;
+            }
+            40% {
+                box-shadow: 0 -2em;
+                height: 5em;
+            }
+        }
+        @keyframes load1 {
+            0%,
+            80%,
+            100% {
+                box-shadow: 0 0;
+                height: 4em;
+            }
+            40% {
+                box-shadow: 0 -2em;
+                height: 5em;
+            }
+        }
+
+        .l_r{
+            margin-top: 8px;
+            padding-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #52525250;
+        }
+
+        @media (max-width: 415px){
+            .mm-t-16{
+                margin-top: 16px;
+            }
+            .mm-t-8{
+                margin-top: 8px;
+            }
+        }
+    </style>
+
+</head>
+
+<body data-sidebar="dark">
+
+<!-- <body data-layout="horizontal" data-topbar="dark"> -->
+
+<!-- Begin page -->
+<div id="layout-wrapper">
+
+
+    <header id="page-topbar">
+        <div class="navbar-header">
+            <div class="d-flex">
+                <!-- LOGO -->
+                <div class="navbar-brand-box text-center">
+                    <a href="{{ url_for('dashboard.home') }}" class="logo logo-dark">
+                                <span class="logo-sm">
+                                    <img src="../static/assets/images/logo-sm.png" alt="logo-sm-dark" height="22">
+                                </span>
+                        <span class="logo-lg">
+                                    <img src="../static/assets/images/logo-sm.png" alt="logo-dark" height="24">
+                                </span>
+                    </a>
+
+                    <a href="{{ url_for('dashboard.home') }}" class="logo logo-light">
+                                <span class="logo-sm">
+                                    <img src="../static/assets/images/logo-sm.png" alt="logo-sm-light" height="22">
+                                </span>
+                        <span class="logo-lg">
+                                    <img src="../static/assets/images/logo-sm.png" alt="logo-light" height="24">
+                                </span>
+                    </a>
+                </div>
+
+                <button type="button" class="btn btn-sm px-3 font-size-24 header-item waves-effect" id="vertical-menu-btn">
+                    <i class="ri-menu-2-line align-middle"></i>
+                </button>
+            </div>
+
+            <div class="d-flex">
+
+
+                <div class="dropdown d-none d-lg-inline-block ms-1">
+                    <button type="button" class="btn header-item noti-icon waves-effect" data-toggle="fullscreen">
+                        <i class="ri-fullscreen-line"></i>
+                    </button>
+                </div>
+
+                <div class="dropdown d-inline-block user-dropdown">
+                    <button type="button" class="btn header-item waves-effect" id="page-header-user-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="d-none d-xl-inline-block ms-1">{{ user.login }}</span>
+                        <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item text-danger" href="{{ url_for('dashboard.logout') }}"><i class="ri-shut-down-line align-middle me-1 text-danger"></i>Выйти</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== Left Sidebar Start ========== -->
+    <div class="vertical-menu">
+
+        <div data-simplebar class="h-100">
+
+            <!--- Sidemenu -->
+            <div id="sidebar-menu">
+                <!-- Left Menu Start -->
+                <ul class="metismenu list-unstyled" id="side-menu">
+                    <li class="menu-title">Menu</li>
+
+                    {% if user.login == 'admin' %}
+                        <li>
+                            <a href="{{ url_for('dashboard.home') }}" class="waves-effect">
+                                <i class="mdi mdi-home-variant-outline"></i>
+                                <span>Главная</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.cities_page') }}" class="waves-effect">
+                                <i class="mdi mdi-city"></i>
+                                <span>Города</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.avito_page') }}" class="waves-effect">
+                                <i class="mdi mdi-file"></i>
+                                <span>Отчет Авито</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.mailer_page') }}" class="waves-effect">
+                                <i class="mdi mdi-telegram"></i>
+                                <span>Рассылка</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.shorts_page') }}" class="waves-effect">
+                                <i class="mdi mdi-link"></i>
+                                <span>Ссылки</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.admins_page') }}" class="waves-effect">
+                                <i class="mdi mdi-chat"></i>
+                                <span>Менеджеры</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.cleaning_page') }}" class="waves-effect">
+                                <i class="mdi mdi-delete-clock"></i>
+                                <span>Очистка групп</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.dialogs_page') }}" class="waves-effect">
+                                <i class="mdi mdi-telegram"></i>
+                                <span>Диалоги</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.reports_page') }}" class="waves-effect">
+                                <i class="mdi mdi-file"></i>
+                                <span>Отчеты по звонкам</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.reports_yandex_page') }}" class="waves-effect">
+                                <i class="mdi mdi-file"></i>
+                                <span>Грузовой поток</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="javascript:;" class="has-arrow waves-effect">
+                                <i class="mdi mdi-whatsapp"></i>
+                                <span>WhatsApp</span>
+                            </a>
+                            <ul>
+                                <li>
+                                    <a href="{{ url_for('dashboard.shortcuts_page') }}"><i class="bx bx-right-arrow-alt"></i>Сообщения</a>
+                                </li>
+                                <li>
+                                    <a href="{{ url_for('dashboard.tasks_page') }}"><i class="bx bx-right-arrow-alt"></i>Уведомления</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.spam_page') }}" class="waves-effect">
+                                <i class="mdi mdi-air-filter"></i>
+                                <span>Спам-фильтр</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('dashboard.chatbot_page') }}" class="waves-effect">
+                                <i class="mdi mdi-chat"></i>
+                                <span>Чат-бот настройки</span>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if user.login == 'calls_tracking' %}
+                        <li>
+                            <a href="{{ url_for('dashboard.reports_page') }}" class="waves-effect">
+                                <i class="mdi mdi-file"></i>
+                                <span>Отчеты по звонкам</span>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                </ul>
+            </div>
+            <!-- Sidebar -->
+        </div>
+    </div>
+    <!-- Left Sidebar End -->
+
+
+
+    <!-- ============================================================== -->
+    <!-- Start right Content here -->
+    <!-- ============================================================== -->
+    <div class="main-content">
+
+        <div class="page-content">
+            <div class="container-fluid">
+
+                <!-- start page title -->
+                {% block content %}{% endblock %}
+                <!-- end page title -->
+
+
+            </div> <!-- container-fluid -->
+        </div>
+
+    </div>
+    <!-- end main content-->
+
+</div>
+<!-- END layout-wrapper -->
+
+
+
+<!-- JAVASCRIPT -->
+<script src="../static/assets/libs/jquery/jquery.min.js"></script>
+<script src="../static/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="../static/assets/libs/metismenu/metisMenu.min.js"></script>
+<script src="../static/assets/libs/simplebar/simplebar.min.js"></script>
+<script src="../static/assets/libs/node-waves/waves.min.js"></script>
+<script src="../static/assets/libs/select2/js/select2.min.js"></script>
+<script src="../static/assets/libs/sweetalert2/sweetalert2.min.js"></script>
+
+<script src="../static/assets/libs/apexcharts/apexcharts.min.js"></script>
+
+<!-- Required datatable js -->
+<script src="../static/assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+<script src="../static/assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+<!-- Buttons examples -->
+<script src="../static/assets/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+<script src="../static/assets/libs/datatables.net-buttons-bs4/js/buttons.bootstrap4.min.js"></script>
+<script src="../static/assets/libs/jszip/jszip.min.js"></script>
+<script src="../static/assets/libs/pdfmake/build/pdfmake.min.js"></script>
+<script src="../static/assets/libs/pdfmake/build/vfs_fonts.js"></script>
+<script src="../static/assets/libs/datatables.net-buttons/js/buttons.html5.min.js"></script>
+<script src="../static/assets/libs/datatables.net-buttons/js/buttons.print.min.js"></script>
+<script src="../static/assets/libs/datatables.net-buttons/js/buttons.colVis.min.js"></script>
+<!-- Responsive examples -->
+<script src="../static/assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+<script src="../static/assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+<script src="../static/assets/libs/select2/js/select2.min.js"></script>
+
+<script src="../static/assets/js/app.js"></script>
+
+<script>
+
+    function showError(msg){
+        Swal.fire({
+            title: 'Ошибка',
+            text: msg,
+            icon: 'error',
+            confirmButtonText: 'Ок'
+        })
+    }
+
+    function showSuccess(title, msg){
+        Swal.fire({
+            title: title,
+            text: msg,
+            icon: 'success',
+            confirmButtonText: 'Ок'
+        })
+    }
+
+    function showConfirm(title, msg, btn_text, action=null){
+        Swal.fire({
+            title: title,
+            text: msg,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: btn_text
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if(action !== null) action();
+            }
+        })
+    }
+
+    function createBlock(tag_name, class_name='', content=null){
+        let box = document.createElement(tag_name);
+        box.className = class_name;
+        if(content !== null) box.innerHTML = content;
+        return box;
+    }
+</script>
+
+{% block script %}
+
+{% endblock %}
+</body>
+</html>

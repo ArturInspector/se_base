@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Диалоги{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Список диалогов</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 col-md-3">
+                        <label for="source_id">Источник</label>
+                        <select name="" id="source_id" class="form-select" onchange="filtersus()">
+                            <option value="0" {% if source_id == 0 %}selected{% endif %}>Любой</option>
+                            <option value="1" {% if source_id == 1 %}selected{% endif %}>Avito</option>
+                            <option value="2" {% if source_id == 2 %}selected{% endif %}>WhatsApp</option>
+                            <option value="3" {% if source_id == 3 %}selected{% endif %}>Telegram</option>
+                            <option value="4" {% if source_id == 4 %}selected{% endif %}>стандарт-работа.рф</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="utm_source">utm_source</label>
+                        <select name="" id="utm_source" class="form-select" onchange="filtersus()">
+                            <option value="" {% if utm_source == '' %}selected{% endif %}>Любой</option>
+                            {% for entity in utm_sources %}
+                                <option value="{{ entity }}" {% if entity == utm_source %}selected{% endif %}>{{ entity }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="utm_medium">utm_medium</label>
+                        <select name="" id="utm_medium" class="form-select" onchange="filtersus()">
+                            <option value="" {% if utm_medium == '' %}selected{% endif %}>Любой</option>
+                            {% for entity in utm_mediums %}
+                                <option value="{{ entity }}" {% if entity == utm_medium %}selected{% endif %}>{{ entity }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="utm_campaign">utm_source</label>
+                        <select name="" id="utm_campaign" class="form-select" onchange="filtersus()">
+                            <option value="" {% if utm_campaign == '' %}selected{% endif %}>Любой</option>
+                            {% for entity in utm_campaigns %}
+                                <option value="{{ entity }}" {% if entity == utm_campaign %}selected{% endif %}>{{ entity }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата создания</th>
+                                <th>Источник</th>
+                                <th>utm_source</th>
+                                <th>utm_medium</th>
+                                <th>utm_campaign</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for dialog in dialogs_list %}
+                                <tr>
+                                    <td>{{ dialog.id }}</td>
+                                    <td>{{ dialog.create_date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{{ Member.get_source_by_id(dialog.source_id) }}</td>
+                                    <td>{% if dialog.utm_source != None %}{{ dialog.utm_source }}{% endif %}</td>
+                                    <td>{% if dialog.utm_medium != None %}{{ dialog.utm_medium }}{% endif %}</td>
+                                    <td>{% if dialog.utm_campaign != None %}{{ dialog.utm_campaign }}{% endif %}</td>
+                                    <td>
+                                        <a href="/dashboard/dialog/{{ dialog.token }}" target="_blank">
+                                            <button class="btn btn-sm btn-outline-primary">Перейти</button>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        function filtersus(){
+            let url = `/dashboard/dialogs?source_id=${source_id.value}&utm_source=${utm_source.value}&utm_medium=${utm_medium.value}&utm_campaign=${utm_campaign.value}`
+            location.href = url;
+        }
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+    </script>
+{% endblock %}

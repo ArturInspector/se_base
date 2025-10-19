@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ config.PROJECT_NAME }} - Отчёты{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h4>Список ежедневных отчетов по звонкам</h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-body">
+                <div class="row">
+                    <div class="col-12 table-responsive" style="border: none;">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports_list %}
+                                    <tr>
+                                        <td>{{ report.id }}</td>
+                                        <td>{{ report.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                        <td>
+                                            <a href="/dashboard/report_yandex?id={{ report.id }}">
+                                                <button class="btn btn-sm btn-secondary">Просмотр</button>
+                                            </a>
+                                        </td>
+                                    </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script>
+
+        let table = $('.table').DataTable(
+            {
+                aaSorting: [[ 0, "desc" ]],
+            }
+        );
+
+    </script>
+{% endblock %}
