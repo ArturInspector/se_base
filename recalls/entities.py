@@ -54,9 +54,15 @@ class Lead:
             if self.phone is None:
                 # ВСЕГДА используем ИИ для генерации ответа
                 try:
-                    from chat.ai import SmartAIAssistant
-                    ai_processor = SmartAIAssistant()
-                    text = ai_processor.process_message(self.message, self.avito_id)
+                    from chat.ai import AvitoAIProcessor
+                    ai_processor = AvitoAIProcessor()
+                    text = ai_processor.process_with_functions(
+                        message=self.message,
+                        user_id=self.avito_id,
+                        ad_data=None,
+                        chat_id=self.chat_id,
+                        use_functions=True
+                    )
                 except Exception as e:
                     # Fallback на ИИ fallback без шаблонов
                     try:

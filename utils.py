@@ -11,8 +11,7 @@ import os
 import inspect
 import users
 import re
-import pymorphy3
-import re
+import pymorphy2
 import requests
 
 

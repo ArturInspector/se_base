@@ -165,9 +165,6 @@ def avito_chat(data, is_new=False):
                 avito.api.send_message(model.payload.value.chat_id, error_response)
             return "OK"
 
-
-    phone_number = utils.telephone(model.payload.value.content.text)
-    
     # ОПРЕДЕЛЕНИЕ ГОРОДА ОБЪЯВЛЕНИЯ И AI ОБРАБОТКА
     try:
         ai_processor = AvitoAIProcessor()
@@ -187,35 +184,18 @@ def avito_chat(data, is_new=False):
         final_city = None
         ad_data = {}
 
-    # СОЗДАНИЕ СДЕЛКИ В БИТРИКСЕ (ДО AI ОТВЕТА)
-    if phone_number:
-        cache_key = f'bitrix_deal_{model.payload.value.chat_id}'
-        if cache.get_cache('bitrix', cache_key) is not None:
-            logger.debug(f"avito_chat: Сделка уже создана для чата {model.payload.value.chat_id}")
-        else:
-            logger.info(f"avito_chat: Найден номер телефона: {phone_number}")
-            try:
-                dialogue_summary = _get_dialogue_summary_for_bitrix(model.payload.value.chat_id)
-                recalls.bitrix.create_deal_from_avito(
-                    phone=phone_number,
-                    username='AvitoUser',
-                    source_description=f'Avito: {dialogue_summary} | Последнее: {model.payload.value.content.text}'
-                )
-                logger.info(f"avito_chat: Сделка создана в Битриксе для {phone_number}")
-                cache.set_cache('bitrix', cache_key, 1, ex=datetime.timedelta(hours=24))
-            except Exception as bitrix_error:
-                logger.error(f"avito_chat: Ошибка создания сделки в Битриксе: {bitrix_error}")
-
+    # AI с Function Calling сам создаст сделку в Битриксе когда получит телефон
     try:
         ad_data_with_city = ad_data.copy() if ad_data else {}
         if final_city:
             ad_data_with_city['determined_city'] = final_city
         
-        ai_response = ai_processor.process_message(
+        ai_response = ai_processor.process_with_functions(
             message=model.payload.value.content.text,
             user_id=model.payload.value.author_id,
             ad_data=ad_data_with_city,
-            chat_id=model.payload.value.chat_id
+            chat_id=model.payload.value.chat_id,
+            use_functions=True
         )
         logger.info(f"avito_chat: AI ответ сгенерирован")
         

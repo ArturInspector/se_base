@@ -4,11 +4,22 @@ from typing import Dict, Optional
 import logging
 
 from .config import PRICING_DATA_PATH
+import cities.api
 
 logger = logging.getLogger(__name__)
 
 
 class PricingCalculator:
+    DEFAULT_PRICING = {
+        'ppr': 700,              # Грузчики руб/час
+        'min_hours': 2.0,        # Минимум часов для грузчиков
+        'shift_8h': 580,         # Аутсорсинг 8 часов руб/час
+        'shift_12h': 500,        # Аутсорсинг 12 часов руб/час
+        'gazelle': 2000,         # Газель руб/час
+        'gazelle_min_hours': 2.0,# Минимум часов для Газели
+        'nds_5': 2200
+    }
+    
     def __init__(self, pricing_data_path: str = None):
         if pricing_data_path is None:
             pricing_data_path = PRICING_DATA_PATH
@@ -47,9 +58,16 @@ class PricingCalculator:
             return "CITY_REQUEST"
         
         city_data = self.pricing_data['cities'].get(city)
+        
         if not city_data:
-            logger.debug(f"Город {city} не найден в прайс-листе")
-            return f"Извините, но я могу предоставить информацию только о стоимости услуг в городе Москва. Пожалуйста, уточните ваш запрос."
+            logger.debug(f"Город {city} не найден в индивидуальном прайс-листе")
+            
+            if not cities.api.is_city_supported(city):
+                logger.warning(f"Город {city} не найден в БД поддерживаемых городов")
+                return "Извините, но мы пока не работаем в этом городе. Мы предоставляем услуги в 1120+ городах России. Пожалуйста, уточните название города."
+            
+            logger.info(f"Используем дефолтные ставки для города {city}")
+            city_data = self.DEFAULT_PRICING
         
         ppr = city_data.get('ppr')
         min_hours = city_data.get('min_hours', 2.0)

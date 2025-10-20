@@ -3,6 +3,7 @@ import threading
 from typing import Optional
 import logging
 import openai
+import json
 
 import config
 
@@ -11,6 +12,8 @@ from .pricing import PricingCalculator
 from .prompts import PromptBuilder
 from .context import DialogueContextManager
 from .config import DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT
+from .functions import get_function_definitions
+from .function_handlers import execute_function, format_function_result_for_ai
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -121,7 +124,7 @@ class AvitoAIProcessor:
         import avito_old
         import re
         
-        logger.debug(f"Подготовка ad_data для item_id={item_id}, chat_id={chat_id}")
+        logger.debug(f"[AVITO_BOT]Подготовка ad_data для item_id={item_id}, chat_id={chat_id}")
         
         ad_data = {}
         
@@ -184,57 +187,158 @@ class AvitoAIProcessor:
         return ad_data
     
     def process_message(self, message: str, user_id: int, ad_data: dict = None, chat_id: str = None) -> str:
-        logger.info(f"Обработка сообщения: '{message[:50]}...'")
+        """
+        Алиас для обратной совместимости.
+        Вызывает process_with_functions с use_functions=True
+        """
+        return self.process_with_functions(
+            message=message,
+            user_id=user_id,
+            ad_data=ad_data,
+            chat_id=chat_id,
+            use_functions=True
+        )
+    
+    def process_with_functions(
+        self, 
+        message: str, 
+        user_id: int, 
+        ad_data: dict = None, 
+        chat_id: str = None,
+        use_functions: bool = True
+    ) -> str:
+        """
+        Обработка сообщения с поддержкой OpenAI Function Calling
+        
+        Args:
+            message: Сообщение от клиента
+            user_id: ID пользователя
+            ad_data: Данные объявления (город, item_id и т.д.)
+            chat_id: ID чата для истории
+            use_functions: Включить function calling (по умолчанию True)
+            
+        Returns:
+            str: Ответ для клиента
+        """
+        logger.info(f"[AVITO_BOT]Обработка с functions: '{message[:50]}...'")
         
         try:
             if chat_id:
                 self.add_to_dialogue_context(chat_id, message, is_user=True)
             
-            response = None
-            if self.use_openai and self.openai_client:
-                logger.debug("Используем OpenAI для обработки")
-                try:
-                    response = self._get_openai_response(message, ad_data, chat_id)
-                except Exception as e:
-                    logger.error(f"Ошибка OpenAI: {e}")
-                    response = self._get_fallback_response(message, ad_data)
-            else:
-                logger.debug("OpenAI недоступен, используем fallback")
-                response = self._get_fallback_response(message, ad_data)
+            if not self.use_openai or not self.openai_client:
+                logger.warning("[AVITO_BOT]OpenAI недоступен, используем fallback без functions")
+                return self._get_fallback_response(message, ad_data, chat_id)
+            
+            response = self._get_openai_response_with_functions(
+                message=message,
+                ad_data=ad_data,
+                chat_id=chat_id,
+                use_functions=use_functions
+            )
             
             if chat_id and response:
                 self.add_to_dialogue_context(chat_id, response, is_user=False)
             
             return response
-                
+            
         except Exception as e:
-            logger.error(f"Ошибка при обработке сообщения: {e}")
-            return self._get_fallback_response(message, ad_data)
+            logger.error(f"[AVITO_BOT]Ошибка при обработке с functions: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return self._get_fallback_response(message, ad_data, chat_id)
     
-    def _get_openai_response(self, message: str, ad_data: dict = None, chat_id: str = None) -> str:
-        logger.debug("Генерация OpenAI ответа")
+    def _get_openai_response_with_functions(
+        self,
+        message: str,
+        ad_data: dict = None,
+        chat_id: str = None,
+        use_functions: bool = True
+    ) -> str:
+        """
+        Генерация ответа OpenAI с поддержкой Function Calling
+        
+        SRP: Координирует процесс, делегирует задачи другим методам
+        """
+        logger.debug("Генерация OpenAI ответа с function calling")
         
         work_details = self.extract_work_details(message, ad_data)
-        logger.debug(f"Извлечены детали: {work_details}")
         
         if work_details['city'] == "UNKNOWN_CITY":
-            logger.debug("Город неизвестен, запрашиваем у клиента")
-            system_prompt = self.prompt_builder.build_city_request_prompt()
-            
-            messages = [{"role": "system", "content": system_prompt}]
-            
-            if chat_id:
-                history = self.context_manager.get_openai_messages(chat_id, limit=5)
-                messages.extend(history)
-            
-            messages.append({"role": "user", "content": message})
-            
-            response = self._call_openai_with_timeout(messages, max_tokens=100, temperature=0.3)
-            
-            if response:
-                return response
-            return "Здравствуйте! Для расчета стоимости, пожалуйста, уточните ваш город."
+            return self._handle_unknown_city(message, chat_id)
         
+        messages = self._prepare_messages_for_openai(
+            message=message,
+            work_details=work_details,
+            chat_id=chat_id,
+            use_functions=use_functions
+        )
+        
+        try:
+            tools = get_function_definitions() if use_functions else None
+            
+            response = self.openai_client.chat.completions.create(
+                model=DEFAULT_MODEL,
+                messages=messages,
+                tools=tools,
+                tool_choice="auto" if use_functions else None,
+                max_tokens=DEFAULT_MAX_TOKENS,
+                temperature=DEFAULT_TEMPERATURE,
+                timeout=DEFAULT_TIMEOUT
+            )
+            
+            assistant_message = response.choices[0].message
+            
+            if assistant_message.tool_calls:
+                return self._handle_tool_calls(
+                    messages=messages,
+                    tool_calls=assistant_message.tool_calls,
+                    assistant_content=assistant_message.content,
+                    chat_id=chat_id,
+                    ad_data=ad_data
+                )
+            else:
+                logger.debug("AI не вызвал функции, обычный ответ")
+                return assistant_message.content if assistant_message.content else self._get_fallback_response(message, ad_data, chat_id)
+        
+        except Exception as e:
+            logger.error(f"Ошибка при вызове OpenAI с functions: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return self._get_fallback_response(message, ad_data, chat_id)
+    
+    def _handle_unknown_city(self, message: str, chat_id: str = None) -> str:
+        """
+        Обработка случая когда город неизвестен
+        """
+        logger.debug("Город неизвестен, запрашиваем у клиента")
+        system_prompt = self.prompt_builder.build_city_request_prompt()
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if chat_id:
+            history = self.context_manager.get_openai_messages(chat_id, limit=5)
+            messages.extend(history)
+        
+        messages.append({"role": "user", "content": message})
+        
+        response = self._call_openai_with_timeout(messages, max_tokens=100, temperature=0.3)
+        
+        return response if response else "Здравствуйте! Для расчета стоимости, пожалуйста, уточните ваш город."
+    
+    def _prepare_messages_for_openai(
+        self,
+        message: str,
+        work_details: dict,
+        chat_id: str = None,
+        use_functions: bool = True
+    ) -> list:
+        """
+        подготовка массива messages для OpenAI
+        
+        Returns:
+            list: Массив сообщений [system, history..., user]
+        """
         price_note = ""
         if work_details['hours'] and work_details['people']:
             price_calc = self.calculate_price(work_details)
@@ -247,6 +351,9 @@ class AvitoAIProcessor:
             include_pricing=True
         ) + price_note
         
+        if use_functions:
+            system_prompt += "\n\nВАЖНО: Когда клиент оставляет телефон, используй функцию create_bitrix_deal для создания заявки. После создания заявки подтверди клиенту что заявка принята и с ним свяжется менеджер. НЕ сообщай клиенту номер сделки."
+        
         messages = [{"role": "system", "content": system_prompt}]
         
         if chat_id:
@@ -256,24 +363,142 @@ class AvitoAIProcessor:
         
         messages.append({"role": "user", "content": message})
         
-        logger.debug(f"Отправка в OpenAI: {len(messages)} сообщений (system + история + текущее)")
-        
-        response = self._call_openai_with_timeout(messages, max_tokens=400, temperature=0.7)
-        
-        if response:
-            logger.debug("OpenAI ответ получен")
-            return response
-        
-        return self._get_fallback_response(message, ad_data)
+        logger.debug(f"[AVITO_BOT] Подготовлено {len(messages)} сообщений для OpenAI")
+        return messages
     
-    def _get_fallback_response(self, message: str, ad_data: dict = None) -> str:
+    def _handle_tool_calls(
+        self,
+        messages: list,
+        tool_calls: list,
+        assistant_content: str,
+        chat_id: str = None,
+        ad_data: dict = None
+    ) -> str:
+        """
+        Обработка вызовов функций от AI
+        
+        Args:
+            messages: Текущий массив сообщений
+            tool_calls: Список вызовов функций от AI
+            assistant_content: Контент ответа assistant
+            chat_id: ID чата
+            ad_data: Данные объявления
+            
+        Returns:
+            str: Финальный ответ от AI после выполнения функций
+        """
+        
+        logger.info(f"AI вызвал {len(tool_calls)} функций")
+        
+        messages.append({
+            "role": "assistant",
+            "content": assistant_content,
+            "tool_calls": [
+                {
+                    "id": tool_call.id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments
+                    }
+                }
+                for tool_call in tool_calls
+            ]
+        })
+        
+        for tool_call in tool_calls:
+            function_name = tool_call.function.name
+            function_args = json.loads(tool_call.function.arguments)
+            
+            logger.info(f"Выполнение функции: {function_name}")
+            logger.debug(f"Аргументы: {json.dumps(function_args, ensure_ascii=False)}")
+            
+            context = {
+                "chat_id": chat_id,
+                "ad_data": ad_data
+            }
+            
+            function_result = execute_function(function_name, function_args, context)
+            result_formatted = format_function_result_for_ai(function_result)
+            
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": result_formatted
+            })
+            
+            logger.debug("Результат функции отправлен обратно в AI")
+        
+        return self._get_final_ai_response_after_functions(messages)
+    
+    def _get_final_ai_response_after_functions(self, messages: list) -> str:
+        """
+        SRP: Получение финального ответа от AI после выполнения функций
+        
+        Args:
+            messages: Массив сообщений включая результаты функций
+            
+        Returns:
+            str: Финальный ответ от AI
+        """
+        logger.debug("Запрос финального ответа от AI после выполнения функций")
+        
+        try:
+            final_response = self.openai_client.chat.completions.create(
+                model=DEFAULT_MODEL,
+                messages=messages,
+                max_tokens=DEFAULT_MAX_TOKENS,
+                temperature=DEFAULT_TEMPERATURE,
+                timeout=DEFAULT_TIMEOUT
+            )
+            
+            final_answer = final_response.choices[0].message.content
+            logger.info("Финальный ответ получен от AI")
+            return final_answer
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении финального ответа: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return "Спасибо за информацию! Наш менеджер свяжется с вами в ближайшее время."
+    
+    def _get_fallback_response(self, message: str, ad_data: dict = None, chat_id: str = None) -> str:
         import re
         logger.debug("Использование fallback ответа")
         
         message_lower = message.lower()
         
         if re.search(r'(\+7|8)?[\s\-]?\(?[0-9]{3}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}', message):
-            logger.debug("Обнаружен телефон в сообщении")
+            logger.debug("Обнаружен телефон в fallback, пытаемся создать сделку")
+            
+            try:
+                import utils
+                phone = utils.telephone(message)
+                if phone:
+                    from .function_handlers import handle_create_bitrix_deal
+                    
+                    work_details = self.extract_work_details(message, ad_data)
+                    context = {"chat_id": chat_id, "ad_data": ad_data}
+                    
+                    result = handle_create_bitrix_deal(
+                        arguments={
+                            "phone": phone,
+                            "city": work_details.get('city', 'Не указан'),
+                            "hours": work_details.get('hours'),
+                            "people": work_details.get('people'),
+                            "summary": "Fallback: OpenAI недоступен"
+                        },
+                        context=context
+                    )
+                    
+                    if result.get("success"):
+                        logger.info(f"Сделка создана через fallback: {result.get('deal_id')}")
+                    else:
+                        logger.error(f"Ошибка создания сделки в fallback: {result.get('error')}")
+                        
+            except Exception as e:
+                logger.error(f"Критическая ошибка создания сделки в fallback: {e}")
+            
             return "Спасибо! Номер принят, наш менеджер свяжется с вами в ближайшее время."
         
         if any(phrase in message_lower for phrase in ['1 человек', 'один грузчик', '1 грузчик', 'одного грузчика']):

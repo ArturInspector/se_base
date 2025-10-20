@@ -3,13 +3,20 @@ import config
 import utils
 
 bitrix = Bitrix(config.Production.BITRIX_WEBHOOK)
-chat_bitrix = Bitrix(config.Production.chatbot_bitrix_webhook)
+
+# Опциональная инициализация chatbot битрикса
+try:
+    if hasattr(config.Production, 'chatbot_bitrix_webhook') and config.Production.chatbot_bitrix_webhook:
+        chat_bitrix = Bitrix(config.Production.chatbot_bitrix_webhook)
+    else:
+        chat_bitrix = None
+except Exception:
+    chat_bitrix = None
 
 
 def _normalize_phone_for_bitrix(phone: str) -> str:
     """
     Централизованная нормализация телефона для Битрикса
-    Принцип: DRY - одна функция для всех случаев
     
     Args:
         phone: номер телефона в любом формате
@@ -36,6 +43,7 @@ def update_source_description(deal_id, source_description):
 
 
 def create_deal_from_avito(phone, username, source_description):
+    """Создание сделки для физических лиц из Авито"""
     normalized_phone = _normalize_phone_for_bitrix(phone)
     contact_id = create_contact(phone, username)
     
@@ -47,6 +55,35 @@ def create_deal_from_avito(phone, username, source_description):
             'SOURCE_ID': 'AvitoMessanger',
             'SOURCE_DESCRIPTION': source_description,
             'CATEGORY_ID': '4',
+            'CONTACT_ID': contact_id,
+            'ASSIGNED_BY_ID': '116',
+        }
+    }
+
+    data = bitrix.get_all('crm.deal.add', params=params)
+    return data
+
+
+def create_deal_from_avito_legal(phone, username, source_description, company_name=None):
+    """Создание сделки для юридических лиц из Авито"""
+    normalized_phone = _normalize_phone_for_bitrix(phone)
+    contact_id = create_contact(phone, username)
+    
+    title = '+7{} - Авито (Юр.лицо)'.format(normalized_phone)
+    if company_name:
+        title = '+7{} - {} (Юр.лицо)'.format(normalized_phone, company_name)
+    
+    if company_name:
+        source_description = f"Компания: {company_name} | {source_description}"
+    
+    params = {
+        'fields': {
+            'TITLE': title,
+            'TYPE_ID': 'SALE',
+            'STAGE_ID': 'C4:NEW',
+            'SOURCE_ID': 'AvitoMessanger',
+            'SOURCE_DESCRIPTION': source_description,
+            'CATEGORY_ID': '46',
             'CONTACT_ID': contact_id,
             'ASSIGNED_BY_ID': '116',
         }

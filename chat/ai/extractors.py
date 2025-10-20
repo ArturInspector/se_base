@@ -6,6 +6,33 @@ from .config import HOUR_PATTERNS, PEOPLE_PATTERNS, CITY_URL_PATTERN
 
 logger = logging.getLogger(__name__)
 
+CITY_ALIASES = {
+    'питер': 'Санкт-Петербург',
+    'спб': 'Санкт-Петербург',
+    'петербург': 'Санкт-Петербург',
+    'ленинград': 'Санкт-Петербург',
+    'мск': 'Москва',
+    'столица': 'Москва',
+    'екат': 'Екатеринбург',
+    'екб': 'Екатеринбург',
+    'нск': 'Новосибирск',
+    'новосиб': 'Новосибирск',
+    'нижний': 'Нижний Новгород',
+    'ростов': 'Ростов-на-Дону',
+    'ростов на дону': 'Ростов-на-Дону',
+    'краснодар': 'Краснодар',
+    'сочи': 'Сочи',
+    'казань': 'Казань',
+    'самара': 'Самара',
+    'уфа': 'Уфа',
+    'челябинск': 'Челябинск',
+    'омск': 'Омск',
+    'красноярск': 'Красноярск',
+    'воронеж': 'Воронеж',
+    'волгоград': 'Волгоград',
+    'пермь': 'Пермь',
+}
+
 
 class CityExtractor:
     def __init__(self, pricing_data: dict):
@@ -73,11 +100,28 @@ class CityExtractor:
         logger.debug("Город из URL не извлечен")
         return None
     
+    def _normalize_city_name(self, name: str) -> str:
+        """
+        Нормализация названия города для сравнения
+        Убирает дефисы, лишние пробелы, приводит к нижнему регистру
+        """
+        return name.lower().replace('-', ' ').replace('  ', ' ').strip()
+    
     def extract_city_from_message(self, message: str, ad_data: dict = None) -> Optional[str]:
         logger.debug(f"Извлечение города из сообщения: '{message}', ad_data: {ad_data is not None}")
         message_lower = message.lower()
+        message_normalized = self._normalize_city_name(message)
         
         cities = list(self.pricing_data.get('cities', {}).keys()) if self.pricing_data else []
+        
+        for alias, real_city in CITY_ALIASES.items():
+            if alias in message_lower:
+                logger.debug(f"Найден алиас '{alias}' → '{real_city}'")
+                if real_city in cities or any(self._normalize_city_name(city) == self._normalize_city_name(real_city) for city in cities):
+                    for city in cities:
+                        if self._normalize_city_name(city) == self._normalize_city_name(real_city):
+                            logger.debug(f"Город из алиаса найден в прайс-листе: {city}")
+                            return city
         
         if ad_data and 'determined_city' in ad_data:
             determined_city = ad_data['determined_city']
@@ -87,12 +131,17 @@ class CityExtractor:
         if ad_data and 'city_from_api' in ad_data:
             api_city = ad_data['city_from_api']
             logger.debug(f"Город из API: {api_city}")
+            api_city_normalized = self._normalize_city_name(api_city)
             for city in cities:
+                city_normalized = self._normalize_city_name(city)
+                if city_normalized == api_city_normalized:
+                    logger.debug(f"Найден город из API в прайс-листе (нормализованный): {city}")
+                    return city
                 if city.lower() == api_city.lower():
                     logger.debug(f"Найден город из API в прайс-листе: {city}")
                     return city
-                if city.lower() in api_city.lower() or api_city.lower() in city.lower():
-                    logger.debug(f"Найден город из API (частичное совпадение): {city}")
+                if city_normalized in api_city_normalized or api_city_normalized in city_normalized:
+                    logger.debug(f"Найден город из API (частичное совпадение, нормализованный): {city}")
                     return city
         
         if ad_data and 'url' in ad_data:
@@ -110,26 +159,35 @@ class CityExtractor:
                 
                 if ad_city:
                     logger.debug(f"Город из location: {ad_city}")
+                    ad_city_normalized = self._normalize_city_name(ad_city)
                     for city in cities:
+                        city_normalized = self._normalize_city_name(city)
+                        if city_normalized == ad_city_normalized:
+                            logger.debug(f"Найден город из location (нормализованный): {ad_city}")
+                            return city
                         if city.lower() == ad_city.lower():
                             logger.debug(f"Найден город из location: {ad_city}")
                             return city
-                        if city.lower() in ad_city.lower() or ad_city.lower() in city.lower():
-                            logger.debug(f"Найден город из location (частичное совпадение): {ad_city}")
+                        if city_normalized in ad_city_normalized or ad_city_normalized in city_normalized:
+                            logger.debug(f"Найден город из location (частичное совпадение, нормализованный): {ad_city}")
                             return city
             except Exception as e:
                 logger.debug(f"Ошибка при извлечении города из location: {e}")
         
         for city in cities:
+            city_normalized = self._normalize_city_name(city)
+            if city_normalized in message_normalized:
+                logger.debug(f"Найден город в сообщении (нормализованный): {city}")
+                return city
             if city.lower() in message_lower:
                 logger.debug(f"Найден город в сообщении: {city}")
                 return city
         
         for city in cities:
-            city_lower = city.lower()
-            if len(city_lower) > 4:
-                city_root = city_lower[:-1]
-                if city_root in message_lower:
+            city_normalized = self._normalize_city_name(city)
+            if len(city_normalized) > 4:
+                city_root = city_normalized[:-1]
+                if city_root in message_normalized:
                     logger.debug(f"Найден город в сообщении (частичное совпадение): {city}")
                     return city
         

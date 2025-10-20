@@ -65,6 +65,29 @@ def get_cities(session=None):
     return cities_list
 
 
+def is_city_supported(city_name: str) -> bool:
+    """
+    Проверка поддержки города (есть ли он в базе)
+    
+    Args:
+        city_name: Название города для проверки
+        
+    Returns:
+        bool: True если город поддерживается
+    """
+    try:
+        with Session() as session:
+            city_obj = session.query(City).filter(
+                City.name.ilike(f'%{city_name}%')
+            ).first()
+            return city_obj is not None
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Ошибка проверки города '{city_name}': {e}")
+        return False
+
+
 def get_address_by_dadata(address):
     headers = {
         'Authorization': 'Token {}'.format(config.Production.DADATA_API_KEY),
