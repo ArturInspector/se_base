@@ -43,9 +43,17 @@ def update_source_description(deal_id, source_description):
 
 
 def create_deal_from_avito(phone, username, source_description):
-    """Создание сделки для физических лиц из Авито"""
+    """
+    Создание сделки для физических лиц из Авито
+    
+    Returns:
+        int: ID созданной сделки в Битриксе
+    """
     normalized_phone = _normalize_phone_for_bitrix(phone)
     contact_id = find_or_create_contact(phone, username)
+    
+    if not contact_id:
+        raise Exception("Не удалось создать/найти контакт")
     
     params = {
         'fields': {
@@ -60,14 +68,23 @@ def create_deal_from_avito(phone, username, source_description):
         }
     }
 
-    data = bitrix.call('crm.deal.add', params)
-    return data
+    # crm.deal.add возвращает ID сделки напрямую
+    deal_id = bitrix.call('crm.deal.add', params)
+    return int(deal_id) if deal_id else None
 
 
 def create_deal_from_avito_legal(phone, username, source_description, company_name=None):
-    """Создание сделки для юридических лиц из Авито"""
+    """
+    Создание сделки для юридических лиц из Авито
+    
+    Returns:
+        int: ID созданной сделки в Битриксе
+    """
     normalized_phone = _normalize_phone_for_bitrix(phone)
     contact_id = find_or_create_contact(phone, username)
+    
+    if not contact_id:
+        raise Exception("Не удалось создать/найти контакт")
     
     title = '+7{} - Авито (Юр.лицо)'.format(normalized_phone)
     if company_name:
@@ -89,13 +106,23 @@ def create_deal_from_avito_legal(phone, username, source_description, company_na
         }
     }
 
-    data = bitrix.call('crm.deal.add', params)
-    return data
+    # crm.deal.add возвращает ID сделки напрямую
+    deal_id = bitrix.call('crm.deal.add', params)
+    return int(deal_id) if deal_id else None
 
 
 def create_deal_from_avito_stream(phone, username, source_description):
+    """
+    Создание сделки из потока Авито
+    
+    Returns:
+        int: ID созданной сделки в Битриксе
+    """
     normalized_phone = _normalize_phone_for_bitrix(phone)
     contact_id = find_or_create_contact(phone, username)
+    
+    if not contact_id:
+        raise Exception("Не удалось создать/найти контакт")
     
     params = {
         'fields': {
@@ -110,14 +137,18 @@ def create_deal_from_avito_stream(phone, username, source_description):
         }
     }
 
-    data = bitrix.call('crm.deal.add', params)
-    return data
+    # crm.deal.add возвращает ID сделки напрямую
+    deal_id = bitrix.call('crm.deal.add', params)
+    return int(deal_id) if deal_id else None
 
 
 def find_or_create_contact(phone, username):
     """
     Ищет существующий контакт по телефону, или создает новый если не найден.
     Оптимизация: избегает дублирования контактов и снижает нагрузку на API.
+    
+    Returns:
+        int: ID контакта в Битриксе
     """
     normalized_phone = _normalize_phone_for_bitrix(phone)
     phone_with_code = f"7{normalized_phone}"
@@ -130,11 +161,16 @@ def find_or_create_contact(phone, username):
     }
     
     try:
-        existing_contacts = bitrix.call('crm.contact.list', search_params)
-        if existing_contacts and len(existing_contacts) > 0:
-            return existing_contacts[0]['ID']
-    except Exception:
-        pass  # Если поиск не удался, создаем новый
+        result = bitrix.call('crm.contact.list', search_params)
+        # fast_bitrix24 возвращает список контактов напрямую
+        if result and len(result) > 0:
+            contact_id = result[0].get('ID') or result[0].get('id')
+            if contact_id:
+                return int(contact_id)
+    except Exception as e:
+        # Если поиск не удался, продолжаем создание
+        import logging
+        logging.warning(f"Ошибка поиска контакта: {e}, создаем новый")
     
     # 2. Контакт не найден - создаем новый
     create_params = {
@@ -151,8 +187,9 @@ def find_or_create_contact(phone, username):
         }
     }
 
-    data = bitrix.call('crm.contact.add', create_params)
-    return data
+    # crm.contact.add возвращает ID контакта напрямую
+    contact_id = bitrix.call('crm.contact.add', create_params)
+    return int(contact_id) if contact_id else None
 
 
 def create_contact(phone, username):
