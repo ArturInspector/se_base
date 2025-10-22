@@ -38,14 +38,14 @@ def update_source_description(deal_id, source_description):
         }
     }
 
-    data = bitrix.get_all('crm.deal.update', params=params)
+    data = bitrix.call('crm.deal.update', params)
     return data
 
 
 def create_deal_from_avito(phone, username, source_description):
     """Создание сделки для физических лиц из Авито"""
     normalized_phone = _normalize_phone_for_bitrix(phone)
-    contact_id = create_contact(phone, username)
+    contact_id = find_or_create_contact(phone, username)
     
     params = {
         'fields': {
@@ -60,14 +60,14 @@ def create_deal_from_avito(phone, username, source_description):
         }
     }
 
-    data = bitrix.get_all('crm.deal.add', params=params)
+    data = bitrix.call('crm.deal.add', params)
     return data
 
 
 def create_deal_from_avito_legal(phone, username, source_description, company_name=None):
     """Создание сделки для юридических лиц из Авито"""
     normalized_phone = _normalize_phone_for_bitrix(phone)
-    contact_id = create_contact(phone, username)
+    contact_id = find_or_create_contact(phone, username)
     
     title = '+7{} - Авито (Юр.лицо)'.format(normalized_phone)
     if company_name:
@@ -89,13 +89,13 @@ def create_deal_from_avito_legal(phone, username, source_description, company_na
         }
     }
 
-    data = bitrix.get_all('crm.deal.add', params=params)
+    data = bitrix.call('crm.deal.add', params)
     return data
 
 
 def create_deal_from_avito_stream(phone, username, source_description):
     normalized_phone = _normalize_phone_for_bitrix(phone)
-    contact_id = create_contact(phone, username)
+    contact_id = find_or_create_contact(phone, username)
     
     params = {
         'fields': {
@@ -110,15 +110,34 @@ def create_deal_from_avito_stream(phone, username, source_description):
         }
     }
 
-    data = bitrix.get_all('crm.deal.add', params=params)
+    data = bitrix.call('crm.deal.add', params)
     return data
 
 
-def create_contact(phone, username):
+def find_or_create_contact(phone, username):
+    """
+    Ищет существующий контакт по телефону, или создает новый если не найден.
+    Оптимизация: избегает дублирования контактов и снижает нагрузку на API.
+    """
     normalized_phone = _normalize_phone_for_bitrix(phone)
     phone_with_code = f"7{normalized_phone}"
     
-    params = {
+    # 1. Поиск существующего контакта по телефону
+    search_params = {
+        'filter': {'PHONE': phone_with_code},
+        'select': ['ID'],  # Только ID, не все поля!
+        'start': -1  # Отключить подсчет общего количества
+    }
+    
+    try:
+        existing_contacts = bitrix.call('crm.contact.list', search_params)
+        if existing_contacts and len(existing_contacts) > 0:
+            return existing_contacts[0]['ID']
+    except Exception:
+        pass  # Если поиск не удался, создаем новый
+    
+    # 2. Контакт не найден - создаем новый
+    create_params = {
         'fields': {
             'NAME': username,
             'SOURCE_ID': 'Avito',
@@ -132,8 +151,13 @@ def create_contact(phone, username):
         }
     }
 
-    data = bitrix.get_all('crm.contact.add', params=params)
+    data = bitrix.call('crm.contact.add', create_params)
     return data
+
+
+def create_contact(phone, username):
+    """Deprecated: используйте find_or_create_contact"""
+    return find_or_create_contact(phone, username)
 
 
 def create_source(source_name, source_id):
@@ -148,7 +172,7 @@ def create_source(source_name, source_id):
         }
     }
 
-    data = bitrix.get_all('crm.status.add', params=params)
+    data = bitrix.call('crm.status.add', params)
     print(data)
     return data
 
@@ -162,5 +186,5 @@ def update_source(deal_id, source_id, source_description):
         }
     }
 
-    data = bitrix.get_all('crm.deal.update', params=params)
+    data = bitrix.call('crm.deal.update', params)
     return data
