@@ -3,7 +3,7 @@ import os
 PRICING_DATA_PATH = os.path.join(os.path.dirname(__file__), '../../clean_pricing_data.json')
 
 DEFAULT_MODEL = "gpt-4o"
-DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TEMPERATURE = 0.2
 DEFAULT_MAX_TOKENS = 600
 DEFAULT_TIMEOUT = 20
 
