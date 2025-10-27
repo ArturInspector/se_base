@@ -75,3 +75,6 @@ class Production:
     AI_ENABLED = os.getenv('AI_ENABLED', 'True').lower() == 'true'
     AI_FALLBACK_ENABLED = os.getenv('AI_FALLBACK_ENABLED', 'True').lower() == 'true'
     AI_MAX_CONVERSATION_LENGTH = int(os.getenv('AI_MAX_CONVERSATION_LENGTH', 10))
+    
+    KPI_DASHBOARD_USER = os.getenv('KPI_DASHBOARD_USER', 'admin')
+    KPI_DASHBOARD_PASSWORD = os.getenv('KPI_DASHBOARD_PASSWORD', 'change_me_in_production')

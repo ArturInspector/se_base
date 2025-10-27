@@ -9,10 +9,75 @@ import json
 import logging
 from typing import Dict, Any, Optional
 import traceback
+import time
 import recalls.bitrix
 import utils
+from .reliability import (
+    retry_with_backoff,
+    RetryConfig,
+    get_circuit_breaker,
+    CircuitBreakerOpenError,
+    monitored_function,
+    get_metrics
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _send_deal_failure_alert(phone: str, details: Any, error: str):
+    """
+    Отправить критическое уведомление о неудачном создании сделки
+    
+    Fallback когда Битрикс не отвечает или вернул ошибку
+    """
+    try:
+        from bot import send_message
+        
+        alert_message = (
+            f"🔴 ОШИБКА СОЗДАНИЯ СДЕЛКИ\n\n"
+            f"📱 Телефон: {phone}\n"
+            f"📋 Детали: {details}\n"
+            f"❌ Ошибка: {error}\n\n"
+            f"⚠️ Требуется ручная обработка!"
+        )
+        
+        send_message(alert_message)
+        logger.critical(f"[BITRIX_FAILURE] Отправлено уведомление: {phone}")
+        
+    except Exception as e:
+        logger.error(f"Не удалось отправить alert в Telegram: {e}")
+        # В худшем случае просто критический лог
+        logger.critical(f"[BITRIX_FAILURE] Телефон: {phone}, Детали: {details}, Ошибка: {error}")
+
+
+@monitored_function("create_bitrix_deal")
+@retry_with_backoff(
+    config=RetryConfig(max_attempts=3, initial_delay=1.0, max_delay=5.0),
+    exceptions=(ConnectionError, TimeoutError, Exception)
+)
+def _create_bitrix_deal_with_retry(
+    phone: str,
+    username: str,
+    source_description: str
+) -> Any:
+    """
+    Обертка для создания сделки в Битриксе с retry
+    
+    Выделена в отдельную функцию для применения декораторов
+    """
+    circuit_breaker = get_circuit_breaker("bitrix_api")
+    
+    try:
+        result = circuit_breaker.call(
+            recalls.bitrix.create_deal_from_avito,
+            phone=phone,
+            username=username,
+            source_description=source_description
+        )
+        return result
+    except CircuitBreakerOpenError as e:
+        logger.error(f"Circuit breaker OPEN для Bitrix API: {e}")
+        raise ConnectionError("Bitrix API временно недоступен")
 
 
 def handle_create_bitrix_deal(arguments: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -77,11 +142,20 @@ def handle_create_bitrix_deal(arguments: Dict[str, Any], context: Dict[str, Any]
         
         logger.info(f"Создание сделки в Битриксе: телефон={normalized_phone}, описание={source_description[:100]}")
         
-        deal_result = recalls.bitrix.create_deal_from_avito(
-            phone=normalized_phone,
-            username="AvitoUser",
-            source_description=source_description
-        )
+        try:
+            deal_result = _create_bitrix_deal_with_retry(
+                phone=normalized_phone,
+                username="AvitoUser",
+                source_description=source_description
+            )
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(f"Bitrix API недоступен после retry: {e}")
+            _send_deal_failure_alert(normalized_phone, source_description, f"API unavailable: {e}")
+            return {
+                "success": False,
+                "error": "Bitrix API unavailable",
+                "message": "Система временно недоступна, заявка сохранена и будет обработана"
+            }
         
         if deal_result:
             deal_id = deal_result if isinstance(deal_result, int) else "создана"
@@ -94,6 +168,7 @@ def handle_create_bitrix_deal(arguments: Dict[str, Any], context: Dict[str, Any]
             }
         else:
             logger.error("Битрикс вернул пустой результат")
+            _send_deal_failure_alert(normalized_phone, source_description, "Empty result from Bitrix")
             return {
                 "success": False,
                 "error": "Empty result from Bitrix",
@@ -103,6 +178,11 @@ def handle_create_bitrix_deal(arguments: Dict[str, Any], context: Dict[str, Any]
     except Exception as e:
         logger.error(f"Ошибка создания сделки в Битриксе: {e}")
         logger.error(traceback.format_exc())
+        _send_deal_failure_alert(
+            phone=arguments.get("phone", "не указан"),
+            details=arguments,
+            error=str(e)
+        )
         return {
             "success": False,
             "error": str(e),
@@ -110,6 +190,7 @@ def handle_create_bitrix_deal(arguments: Dict[str, Any], context: Dict[str, Any]
         }
 
 
+@monitored_function("calculate_price_estimate")
 def handle_calculate_price_estimate(arguments: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Обработчик расчета стоимости
@@ -169,6 +250,12 @@ def handle_calculate_price_estimate(arguments: Dict[str, Any], context: Dict[str
         }
 
 
+# Кэш для прайсов городов (город -> данные, время)
+_city_pricing_cache = {}
+_cache_ttl_seconds = 3600  # 1 час
+
+
+@monitored_function("get_city_pricing")
 def handle_get_city_pricing(arguments: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Обработчик получения прайса для города
@@ -192,12 +279,19 @@ def handle_get_city_pricing(arguments: Dict[str, Any], context: Dict[str, Any] =
                 "message": "Необходимо указать название города"
             }
         
+        # Проверяем кэш
+        if city in _city_pricing_cache:
+            cached_data, cached_time = _city_pricing_cache[city]
+            if (time.time() - cached_time) < _cache_ttl_seconds:
+                logger.debug(f"Прайс для {city} из кэша")
+                return cached_data
+        
         calculator = PricingCalculator()
         city_pricing = calculator.get_city_pricing(city)
         
         if city_pricing:
             logger.info(f"Найден прайс для города {city}: ppr={city_pricing.get('ppr')}")
-            return {
+            result = {
                 "success": True,
                 "city": city,
                 "ppr": city_pricing.get("ppr"),
@@ -210,12 +304,15 @@ def handle_get_city_pricing(arguments: Dict[str, Any], context: Dict[str, Any] =
                     f"минимум {city_pricing.get('min_hours', 2.0)} часа"
                 )
             }
+            # Сохраняем в кэш
+            _city_pricing_cache[city] = (result, time.time())
+            return result
         else:
             is_supported = cities.api.is_city_supported(city)
             
             if is_supported:
                 logger.info(f"Город {city} в базе, используем стандартные цены")
-                return {
+                result = {
                     "success": True,
                     "city": city,
                     "ppr": 700,
@@ -225,6 +322,9 @@ def handle_get_city_pricing(arguments: Dict[str, Any], context: Dict[str, Any] =
                     "gazelle": 2000,
                     "message": f"Прайс для {city}: 700₽/час (стандартная ставка), минимум 2 часа"
                 }
+                # Сохраняем в кэш
+                _city_pricing_cache[city] = (result, time.time())
+                return result
             else:
                 logger.warning(f"Город {city} не найден в базе")
                 return {
@@ -246,6 +346,34 @@ def handle_get_city_pricing(arguments: Dict[str, Any], context: Dict[str, Any] =
             "error": str(e),
             "message": "Ошибка при получении прайс-листа"
         }
+
+
+@monitored_function("create_bitrix_deal_legal")
+@retry_with_backoff(
+    config=RetryConfig(max_attempts=3, initial_delay=1.0, max_delay=5.0),
+    exceptions=(ConnectionError, TimeoutError, Exception)
+)
+def _create_bitrix_deal_legal_with_retry(
+    phone: str,
+    username: str,
+    source_description: str,
+    company_name: Optional[str] = None
+) -> Any:
+    """Обертка для создания сделки юрлица с retry"""
+    circuit_breaker = get_circuit_breaker("bitrix_api")
+    
+    try:
+        result = circuit_breaker.call(
+            recalls.bitrix.create_deal_from_avito_legal,
+            phone=phone,
+            username=username,
+            source_description=source_description,
+            company_name=company_name
+        )
+        return result
+    except CircuitBreakerOpenError as e:
+        logger.error(f"Circuit breaker OPEN для Bitrix API (legal): {e}")
+        raise ConnectionError("Bitrix API временно недоступен")
 
 
 def handle_create_bitrix_deal_legal(arguments: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -302,12 +430,25 @@ def handle_create_bitrix_deal_legal(arguments: Dict[str, Any], context: Dict[str
         
         logger.info(f"Создание сделки ЮРЛИЦА: {normalized_phone}, компания={company_name}")
         
-        deal_result = recalls.bitrix.create_deal_from_avito_legal(
-            phone=normalized_phone,
-            username="AvitoUser",
-            source_description=source_description,
-            company_name=company_name
-        )
+        try:
+            deal_result = _create_bitrix_deal_legal_with_retry(
+                phone=normalized_phone,
+                username="AvitoUser",
+                source_description=source_description,
+                company_name=company_name
+            )
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(f"Bitrix API недоступен для юрлица после retry: {e}")
+            _send_deal_failure_alert(
+                normalized_phone,
+                source_description + " [ЮРЛИЦО]",
+                f"API unavailable: {e}"
+            )
+            return {
+                "success": False,
+                "error": "Bitrix API unavailable",
+                "message": "Система временно недоступна, заявка сохранена и будет обработана"
+            }
         
         if deal_result:
             deal_id = deal_result if isinstance(deal_result, int) else "создана"
@@ -320,7 +461,8 @@ def handle_create_bitrix_deal_legal(arguments: Dict[str, Any], context: Dict[str
                 "message": "Сделка для юридического лица успешно создана"
             }
         else:
-            logger.error("Битрикс вернул пустой результат")
+            logger.error("Битрикс вернул пустой результат для юрлица")
+            _send_deal_failure_alert(normalized_phone, source_description + " [ЮРЛИЦО]", "Empty result from Bitrix")
             return {
                 "success": False,
                 "error": "Empty result from Bitrix",
@@ -330,6 +472,11 @@ def handle_create_bitrix_deal_legal(arguments: Dict[str, Any], context: Dict[str
     except Exception as e:
         logger.error(f"Ошибка создания сделки юрлица: {e}")
         logger.error(traceback.format_exc())
+        _send_deal_failure_alert(
+            phone=arguments.get("phone", "не указан"),
+            details=f"{arguments} [ЮРЛИЦО]",
+            error=str(e)
+        )
         return {
             "success": False,
             "error": str(e),

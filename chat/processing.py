@@ -189,11 +189,21 @@ def avito_chat(data, is_new=False):
         final_city = None
         ad_data = {}
 
-    # AI с Function Calling сам создаст сделку в Битриксе когда получит телефон
     try:
+        from chat.ai.experiment_manager import get_experiment_manager
+        from chat.ai.grading import ConversationGrader
+        import time
+        
+        experiment_manager = get_experiment_manager()
+        variant = experiment_manager.get_variant(model.payload.value.chat_id)
+        
+        logger.info(f"[EXPERIMENT] chat_id={model.payload.value.chat_id}, variant={variant}")
+        
         ad_data_with_city = ad_data.copy() if ad_data else {}
         if final_city:
             ad_data_with_city['determined_city'] = final_city
+        
+        start_time = time.time()
         
         ai_response = ai_processor.process_with_functions(
             message=model.payload.value.content.text,
@@ -202,7 +212,9 @@ def avito_chat(data, is_new=False):
             chat_id=model.payload.value.chat_id,
             use_functions=True
         )
-        logger.info(f"avito_chat: AI ответ сгенерирован")
+        
+        response_time_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"avito_chat: AI ответ сгенерирован за {response_time_ms}ms")
         
         if model.payload.value.user_id == config.Production.OLD_AVITO_ID:
             send_result = avito_old.api.send_message(model.payload.value.chat_id, ai_response)
@@ -211,14 +223,42 @@ def avito_chat(data, is_new=False):
         else:
             send_result = avito.api.send_message(model.payload.value.chat_id, ai_response)
         
-        logger.info(f"avito_chat: Сообщение отправлено: {send_result}")
+        logger.info(f"avito_chat: Сообщение отправлено")
         
         try:
+            work_details = ai_processor.extract_work_details(model.payload.value.content.text, ad_data_with_city)
+            
+            extracted_data = {
+                'city': work_details.get('city'),
+                'people': work_details.get('people'),
+                'hours': work_details.get('hours'),
+                'phone': None,
+                'intent': 'unknown'
+            }
+            
+            phone_match = utils.telephone(model.payload.value.content.text)
+            if phone_match:
+                extracted_data['phone'] = phone_match
+            
+            grader = ConversationGrader()
+            grade = grader.grade_message(
+                user_message=model.payload.value.content.text,
+                ai_response=ai_response,
+                extracted_data=extracted_data,
+                function_calls=[],
+                context=None
+            )
+            
             chats_log.api.create_chat_log(
                 model, 
                 is_success=True, 
                 answer=ai_response, 
-                comment='AI Response'
+                comment='AI Response',
+                extracted_data=extracted_data,
+                function_calls=None,
+                quality_score=grade.score,
+                experiment_variant=variant,
+                response_time_ms=response_time_ms
             )
         except Exception as log_error:
             logger.error(f"avito_chat: Ошибка логирования: {log_error}")
