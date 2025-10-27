@@ -205,12 +205,13 @@ def avito_chat(data, is_new=False):
         
         start_time = time.time()
         
-        ai_response = ai_processor.process_with_functions(
+        ai_response, ai_metadata = ai_processor.process_with_functions(
             message=model.payload.value.content.text,
             user_id=model.payload.value.author_id,
             ad_data=ad_data_with_city,
             chat_id=model.payload.value.chat_id,
-            use_functions=True
+            use_functions=True,
+            return_metadata=True
         )
         
         response_time_ms = int((time.time() - start_time) * 1000)
@@ -255,10 +256,12 @@ def avito_chat(data, is_new=False):
                 answer=ai_response, 
                 comment='AI Response',
                 extracted_data=extracted_data,
-                function_calls=None,
+                function_calls=ai_metadata.get('function_calls', []),
                 quality_score=grade.score,
                 experiment_variant=variant,
-                response_time_ms=response_time_ms
+                response_time_ms=response_time_ms,
+                deal_created=ai_metadata.get('deal_created', False),
+                deal_id=ai_metadata.get('deal_id')
             )
         except Exception as log_error:
             logger.error(f"avito_chat: Ошибка логирования: {log_error}")
