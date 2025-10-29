@@ -535,7 +535,6 @@ class SimpleAIProcessor:
             Сгенерированный ответ
         """
         try:
-            # Получить историю ИЗ БД (последние сообщения для контекста)
             context_messages = []
             is_first_message = True
             bot_message_count = 0
