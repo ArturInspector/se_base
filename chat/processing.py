@@ -89,17 +89,20 @@ def avito_chat(data, is_new=False):
             logger.info(f"avito_chat: Обрабатываем системное сообщение с flow_id={model.payload.value.content.flow_id}")
         
         if model.payload.value.author_id == model.payload.value.user_id:
-            logger.debug(f"avito_chat: Игнорируем сообщение от бота")
+            logger.debug(f"avito_chat: Игнорируем сообщение от бота (author == user)")
             return
     except Exception as e:
         logger.error(f"avito_chat: Validation error: {e}")
         raise IncorrectDataValue('Ошибка валидации модели')
 
+    # КРИТИЧЕСКИЙ ФИХ: Игнорируем ВСЕ сообщения от наших аккаунтов (включая других сотрудников компании)
     if model.payload.value.author_id in [config.Production.AVITO_ID, config.Production.OLD_AVITO_ID, config.Production.NEW_AVITO_ID]:
-        if model.payload.value.type != 'system' or not (hasattr(model.payload.value.content, 'flow_id') and model.payload.value.content.flow_id):
-            logger.debug(f"avito_chat: Пропускаем системное сообщение от Avito ID")
+        # Исключение: системные сообщения с flow_id (от Avito API)
+        if model.payload.value.type == 'system' and hasattr(model.payload.value.content, 'flow_id') and model.payload.value.content.flow_id:
+            logger.info(f"avito_chat: Обрабатываем системное сообщение от Avito ID с flow_id={model.payload.value.content.flow_id}")
+        else:
+            logger.debug(f"avito_chat: Игнорируем сообщение от нашего аккаунта (author_id={model.payload.value.author_id})")
             return
-        logger.info(f"avito_chat: Обрабатываем системное сообщение от Avito ID с flow_id={model.payload.value.content.flow_id}")
 
     if cache.get_cache('avito', model.payload.value.id) is not None:
         logger.debug(f"avito_chat: Сообщение в кэше")
