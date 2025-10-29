@@ -170,39 +170,33 @@ def avito_chat(data, is_new=False):
                 avito.api.send_message(model.payload.value.chat_id, error_response)
             return "OK"
 
-    # ОПРЕДЕЛЕНИЕ ГОРОДА ОБЪЯВЛЕНИЯ И AI ОБРАБОТКА
+    final_city = None
     try:
-        ai_processor = AvitoAIProcessor()
-        
-        ad_data = ai_processor.prepare_ad_data(
+        temp_processor = AvitoAIProcessor()
+        ad_data = temp_processor.prepare_ad_data(
             item_id=model.payload.value.item_id,
             chat_id=model.payload.value.chat_id,
             user_id=model.payload.value.user_id,
             message=model.payload.value.content.text
         )
-        
         final_city = ad_data.get('determined_city')
-        logger.info(f"avito_chat: Город: {final_city}")
-        
+        if final_city:
+            logger.info(f"avito_chat: 🏙️ Город из объявления: {final_city}")
+        else:
+            logger.info(f"avito_chat: Город из объявления не определен")
     except Exception as city_error:
         logger.error(f"avito_chat: Ошибка определения города: {city_error}")
-        final_city = None
-        ad_data = {}
 
-    # AI с Function Calling сам создаст сделку в Битриксе когда получит телефон
     try:
-        ad_data_with_city = ad_data.copy() if ad_data else {}
-        if final_city:
-            ad_data_with_city['determined_city'] = final_city
+        from chat.ai.simple_responder import SimpleResponder
         
-        ai_response = ai_processor.process_with_functions(
+        responder = SimpleResponder()
+        ai_response = responder.process(
             message=model.payload.value.content.text,
-            user_id=model.payload.value.author_id,
-            ad_data=ad_data_with_city,
-            chat_id=model.payload.value.chat_id,
-            use_functions=True
+            city=final_city,
+            chat_id=model.payload.value.chat_id
         )
-        logger.info(f"avito_chat: AI ответ сгенерирован")
+        logger.info(f"avito_chat: SimpleResponder ответ сгенерирован")
         
         if model.payload.value.user_id == config.Production.OLD_AVITO_ID:
             send_result = avito_old.api.send_message(model.payload.value.chat_id, ai_response)
