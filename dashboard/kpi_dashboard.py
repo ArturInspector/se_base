@@ -157,3 +157,51 @@ def realtime_stats():
         }
     })
 
+
+@kpi_dashboard_bp.route('/logs')
+@requires_auth
+def logs_page():
+    """
+    Страница просмотра логов
+    """
+    return render_template('logs_viewer.html')
+
+
+@kpi_dashboard_bp.route('/api/logs')
+@requires_auth
+def get_logs():
+    """
+    API: получить логи из journalctl
+    
+    Query params:
+        service: Название сервиса (pepsiai_se_base, etc)
+        lines: Количество строк (default: 100)
+    """
+    import subprocess
+    
+    service = request.args.get('service', 'pepsiai_se_base')
+    lines = int(request.args.get('lines', 100))
+    
+    try:
+        cmd = ['journalctl', '-u', service, '-n', str(lines), '--no-pager']
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode != 0:
+            return jsonify({
+                "error": f"journalctl error: {result.stderr}",
+                "logs": []
+            })
+        
+        logs = result.stdout.strip().split('\n')
+        
+        return jsonify({
+            "service": service,
+            "lines_count": len(logs),
+            "logs": logs
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Timeout reading logs", "logs": []})
+    except Exception as e:
+        logger.error(f"Error reading journalctl for {service}: {e}")
+        return jsonify({"error": str(e), "logs": []})
+
