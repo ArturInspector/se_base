@@ -199,11 +199,16 @@ class SimpleAIProcessor:
             return self._fallback_extraction(message)
         
         try:
-            # Get context for better extraction
             context_messages = []
             if chat_id:
-                history = self.context_manager.get_openai_messages(chat_id, limit=3)
-                context_messages = history[-3:] if history else []
+                try:
+                    history = chats_log.get_chat_history(chat_id, limit=5)
+                    context_messages = history[-5:] if history else []
+                    logger.debug(f"Загружена история из БД: {len(context_messages)} сообщений")
+                except Exception as history_err:
+                    logger.error(f"Ошибка загрузки истории из БД: {history_err}")
+                    history = self.context_manager.get_openai_messages(chat_id, limit=3)
+                    context_messages = history[-3:] if history else []
             
             messages = context_messages + [
                 {"role": "system", "content": EXTRACTION_PROMPT},
@@ -530,23 +535,35 @@ class SimpleAIProcessor:
             Сгенерированный ответ
         """
         try:
-            # Получить историю (последние 3 сообщения для контекста)
+            # Получить историю ИЗ БД (последние сообщения для контекста)
             context_messages = []
             is_first_message = True
             bot_message_count = 0
             
             if chat_id:
-                history = self.context_manager.get_context(chat_id)
-                if history:
-                    bot_message_count = len([m for m in history if not m.get('is_user')])
-                    is_first_message = (bot_message_count == 0)
-                    recent = history[-3:] if len(history) >= 3 else history
-                    for msg in recent:
-                        role = "user" if msg.get('is_user') else "assistant"
-                        context_messages.append({
-                            "role": role,
-                            "content": msg.get('message', '')
-                        })
+                try:
+                    history = chats_log.get_chat_history(chat_id, limit=5)
+                    if history:
+                        bot_message_count = len([m for m in history if m.get('role') == 'assistant'])
+                        is_first_message = (bot_message_count == 0)
+                        logger.debug(f"is_first_message={is_first_message}, bot_messages={bot_message_count}")
+                        
+                        # Последние 3 сообщения для контекста
+                        context_messages = history[-3:] if len(history) >= 3 else history
+                except Exception as history_err:
+                    logger.error(f"Ошибка загрузки истории из БД для is_first_message: {history_err}")
+                    # Fallback на in-memory context
+                    history = self.context_manager.get_context(chat_id)
+                    if history:
+                        bot_message_count = len([m for m in history if not m.get('is_user')])
+                        is_first_message = (bot_message_count == 0)
+                        recent = history[-3:] if len(history) >= 3 else history
+                        for msg in recent:
+                            role = "user" if msg.get('is_user') else "assistant"
+                            context_messages.append({
+                                "role": role,
+                                "content": msg.get('message', '')
+                            })
 
             micro_prompt = build_micro_prompt(action, customer_type, extracted, pricing, is_first_message)
             
