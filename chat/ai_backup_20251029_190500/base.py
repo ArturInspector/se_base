@@ -26,8 +26,6 @@ logger.addHandler(console_handler)
 
 
 class AvitoAIProcessor:
-    AI_DISCLAIMER = "💬 Я AI-бот SE Express. "
-    
     def __init__(self):
         logger.info("Инициализация AvitoAIProcessor")
         
@@ -206,24 +204,6 @@ class AvitoAIProcessor:
             use_functions=True
         )
     
-    def _is_first_message(self, chat_id: str) -> bool:
-        """Проверка: это первое сообщение в чате (через БД)?"""
-        if not chat_id:
-            return True
-        
-        try:
-            from db import Session
-            import chats_log
-            with Session() as session:
-                count = session.query(chats_log.entities.ChatLog).filter(
-                    chats_log.entities.ChatLog.chat_id == chat_id,
-                    chats_log.entities.ChatLog.is_success == True
-                ).count()
-                return count == 0
-        except Exception as e:
-            logger.error(f"Ошибка проверки is_first_message: {e}")
-            return True
-    
     def process_with_functions(
         self, 
         message: str, 
@@ -270,10 +250,6 @@ class AvitoAIProcessor:
                 chat_id=chat_id,
                 use_functions=use_functions
             )
-            
-            # Добавить disclaimer если первое сообщение
-            if self._is_first_message(chat_id):
-                response = self.AI_DISCLAIMER + response
             
             if chat_id and response:
                 self.add_to_dialogue_context(chat_id, response, is_user=False)
