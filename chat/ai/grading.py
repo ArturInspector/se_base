@@ -135,8 +135,6 @@ class ConversationGrader:
             safety * 0.30 +       # Безопасность (бизнес-правила)
             quality * 0.10        # Качество текста
         )
-        
-        # Flags
         has_hallucination = any("галлюцинация" in issue.lower() for issue in issues)
         is_too_verbose = len(ai_response) > 400
         missed_opportunity = any("упустил" in issue.lower() for issue in issues)

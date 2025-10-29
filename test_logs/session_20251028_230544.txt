@@ -1,0 +1,13 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 23:05:44 ===
+
+[23:05:44] КЛИЕНТ:
+Привет, Москва, 3 грузчика на 5 часов, телефон 89991234567
+
+--------------------------------------------------------------------------------
+
+[23:06:02] БОТ:
+💬 Я AI-бот SE Express (в тестировании). Здравствуйте! Извините за неудобства, наша система бронирования временно недоступна. Пожалуйста, напишите или позвоните позже.
+Метаданные: {'extracted': {'intent': 'greeting', 'city': 'Москва', 'people': 3, 'hours': 5, 'phone': '89991234567', 'keywords': [], 'work_description': '', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'private', 'action': 'bitrix_unavailable', 'template_id': 'bitrix_unavailable', 'deal_created': False, 'customer_type_confidence': 0.7, 'pricing': {'city': 'Москва', 'ppr': 750, 'min_hours': 4.0, 'people': 3, 'hours': 5, 'hours_charged': 5, 'total': 11250}, 'error': "401, message='Unauthorized', url=URL('https://standartexpress.bitrix24.ru/rest/1/pitda62cl4rmlu/batch')"}
+
+--------------------------------------------------------------------------------
+

@@ -66,4 +66,4 @@ htmlcov/
 # System
 Thumbs.db
 
-
+.test_logs/

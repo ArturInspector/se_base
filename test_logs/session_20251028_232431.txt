@@ -1,0 +1,13 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 23:24:31 ===
+
+[23:24:31] КЛИЕНТ:
+тест emoji 💬🎯✅
+
+--------------------------------------------------------------------------------
+
+[23:24:37] БОТ:
+💬 Я AI-бот SE Express (в тестировании). В каком городе?
+Метаданные: {'extracted': {'intent': 'off_topic', 'city': '', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.5}, 'customer_type': 'unknown', 'action': 'ask_city', 'template_id': 'need_city', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+

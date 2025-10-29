@@ -190,6 +190,7 @@ class AvitoAIProcessor:
         
         return ad_data
     
+    
     def process_message(self, message: str, user_id: int, ad_data: dict = None, chat_id: str = None) -> str:
         """
         Алиас для обратной совместимости.

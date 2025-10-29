@@ -170,34 +170,27 @@ def avito_chat(data, is_new=False):
                 avito.api.send_message(model.payload.value.chat_id, error_response)
             return "OK"
 
-    # ОПРЕДЕЛЕНИЕ ГОРОДА ОБЪЯВЛЕНИЯ И AI ОБРАБОТКА
     try:
-        ai_processor = AvitoAIProcessor()
-        
-        ad_data = ai_processor.prepare_ad_data(
-            item_id=model.payload.value.item_id,
-            chat_id=model.payload.value.chat_id,
-            user_id=model.payload.value.user_id,
-            message=model.payload.value.content.text
-        )
-        
-        final_city = ad_data.get('determined_city')
-        logger.info(f"avito_chat: Город: {final_city}")
-        
-    except Exception as city_error:
-        logger.error(f"avito_chat: Ошибка определения города: {city_error}")
-        final_city = None
-        ad_data = {}
-
-    try:
-        from chat.ai.experiment_manager import get_experiment_manager
-        from chat.ai.grading import ConversationGrader
+        from chat.ai.simple_processor import SimpleAIProcessor
         import time
         
-        experiment_manager = get_experiment_manager()
-        variant = experiment_manager.get_variant(model.payload.value.chat_id)
+        try:
+            temp_processor = AvitoAIProcessor()
+            ad_data = temp_processor.prepare_ad_data(
+                item_id=model.payload.value.item_id,
+                chat_id=model.payload.value.chat_id,
+                user_id=model.payload.value.user_id,
+                message=model.payload.value.content.text
+            )
+            final_city = ad_data.get('determined_city')
+            logger.info(f"avito_chat: Город из объявления: {final_city}")
+        except Exception as city_error:
+            logger.error(f"avito_chat: Ошибка определения города: {city_error}")
+            final_city = None
+            ad_data = {}
         
-        logger.info(f"[EXPERIMENT] chat_id={model.payload.value.chat_id}, variant={variant}")
+        # НОВЫЙ ПРОЦЕССОР
+        processor = SimpleAIProcessor()
         
         ad_data_with_city = ad_data.copy() if ad_data else {}
         if final_city:
@@ -205,17 +198,17 @@ def avito_chat(data, is_new=False):
         
         start_time = time.time()
         
-        ai_response, ai_metadata = ai_processor.process_with_functions(
+        # Вызов нового процессора
+        ai_response, ai_metadata = processor.process(
             message=model.payload.value.content.text,
-            user_id=model.payload.value.author_id,
-            ad_data=ad_data_with_city,
             chat_id=model.payload.value.chat_id,
-            use_functions=True,
+            ad_data=ad_data_with_city,
+            avito_message_model=model,  # ← для логирования в chats_log!
             return_metadata=True
         )
         
         response_time_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"avito_chat: AI ответ сгенерирован за {response_time_ms}ms")
+        logger.info(f"avito_chat: 🚀 SimpleAIProcessor ответ за {response_time_ms}ms")
         
         if model.payload.value.user_id == config.Production.OLD_AVITO_ID:
             send_result = avito_old.api.send_message(model.payload.value.chat_id, ai_response)
@@ -224,80 +217,66 @@ def avito_chat(data, is_new=False):
         else:
             send_result = avito.api.send_message(model.payload.value.chat_id, ai_response)
         
-        logger.info(f"avito_chat: Сообщение отправлено")
+        logger.info(f"avito_chat: ✅ Сообщение отправлено")
+        logger.info(f"avito_chat: 📊 Metadata: {ai_metadata}")
         
-        try:
-            work_details = ai_processor.extract_work_details(model.payload.value.content.text, ad_data_with_city)
-            
-            extracted_data = {
-                'city': work_details.get('city'),
-                'people': work_details.get('people'),
-                'hours': work_details.get('hours'),
-                'phone': None,
-                'intent': 'unknown'
-            }
-            
-            phone_match = utils.telephone(model.payload.value.content.text)
-            if phone_match:
-                extracted_data['phone'] = phone_match
-            
-            grader = ConversationGrader()
-            grade = grader.grade_message(
-                user_message=model.payload.value.content.text,
-                ai_response=ai_response,
-                extracted_data=extracted_data,
-                function_calls=[],
-                context=None
-            )
-            
-            chats_log.api.create_chat_log(
-                model, 
-                is_success=True, 
-                answer=ai_response, 
-                comment='AI Response',
-                extracted_data=extracted_data,
-                function_calls=ai_metadata.get('function_calls', []),
-                quality_score=grade.score,
-                experiment_variant=variant,
-                response_time_ms=response_time_ms,
-                deal_created=ai_metadata.get('deal_created', False),
-                deal_id=ai_metadata.get('deal_id')
-            )
-        except Exception as log_error:
-            logger.error(f"avito_chat: Ошибка логирования: {log_error}")
+        # ✅ Логирование уже произошло в SimpleAIProcessor._log_interaction
+        # Все данные (extracted, action, customer_type, deal_created) уже в chats_log
         
         return
         
     except Exception as e:
-        logger.error(f'avito_chat: Ошибка AI обработки: {str(e)}')
-
+        logger.error(f'avito_chat: ❌ Ошибка AI обработки: {str(e)}')
+        logger.error(f'avito_chat: {traceback.format_exc()}')
+        
+        # 🚨 АЛЕРТ АДМИНАМ
         try:
-            if ai_processor is None:
-                ai_processor = AvitoAIProcessor()
-            
-            fallback_response = ai_processor._get_fallback_response(
-                model.payload.value.content.text,
-                ad_data
+            error_details = (
+                f"🚨 ОШИБКА В AVITO BOT\n\n"
+                f"Chat ID: {model.payload.value.chat_id if 'model' in locals() else 'unknown'}\n"
+                f"Error: {str(e)[:300]}\n\n"
+                f"Traceback:\n{traceback.format_exc()[:500]}"
             )
+            bot.send_message(error_details)
+            logger.info("✅ Алерт отправлен в Telegram")
+        except Exception as alert_error:
+            logger.error(f"Не удалось отправить алерт: {alert_error}")
+        
+        # Fallback сообщение
+        fallback_response = (
+            "Извините, произошла техническая ошибка. "
+            "Пожалуйста, оставьте свой номер телефона, и наш менеджер свяжется с вами."
+        )
 
-            if model.payload.value.user_id == config.Production.OLD_AVITO_ID:
-                avito_old.api.send_message(model.payload.value.chat_id, fallback_response)
-            else:
-                avito.api.send_message(model.payload.value.chat_id, fallback_response)
-            
-            logger.info(f"avito_chat: Fallback ответ отправлен")
-        except Exception as inner_e:
-            logger.error(f"avito_chat: Ошибка отправки fallback: {inner_e}")
+        # Отправка fallback (только если model существует)
+        if 'model' in locals() and hasattr(model, 'payload'):
+            try:
+                user_id = model.payload.value.user_id
+                chat_id = model.payload.value.chat_id
+                
+                if user_id == config.Production.OLD_AVITO_ID:
+                    avito_old.api.send_message(chat_id, fallback_response)
+                elif user_id == config.Production.NEW_AVITO_ID:
+                    avito_new.api.send_message(chat_id, fallback_response)
+                else:
+                    avito.api.send_message(chat_id, fallback_response)
+                
+                logger.info(f"avito_chat: 🆘 Fallback ответ отправлен")
+            except Exception as inner_e:
+                logger.error(f"avito_chat: Ошибка отправки fallback: {inner_e}")
 
-        try:
-            chats_log.api.create_chat_log(
-                model,
-                is_success=False,
-                answer=fallback_response if 'fallback_response' in locals() else 'None',
-                comment='AI Error Fallback'
-            )
-        except Exception as log_error:
-            logger.error(f"avito_chat: Ошибка логирования: {log_error}")
+            # Логирование ошибки
+            try:
+                chats_log.api.create_chat_log(
+                    model,
+                    is_success=False,
+                    answer=fallback_response,
+                    comment=f'AI_PROCESSING_ERROR: {str(e)[:200]}'
+                )
+            except Exception as log_error:
+                logger.error(f"avito_chat: Ошибка логирования: {log_error}")
+        else:
+            logger.error("avito_chat: ❌ model не определен, fallback не отправлен")
 
     return
 

@@ -43,10 +43,57 @@ def check_and_create_table(table_name, create_sql):
         return False
 
 
+def fix_utf8mb4_encoding():
+    """
+    Исправить кодировку TEXT колонок на utf8mb4 для поддержки emoji
+    """
+    try:
+        with Session() as session:
+            # Проверяем текущую кодировку
+            result = session.execute(text(
+                "SELECT COLUMN_NAME, CHARACTER_SET_NAME "
+                "FROM INFORMATION_SCHEMA.COLUMNS "
+                "WHERE TABLE_NAME = 'chats_logs' AND COLUMN_NAME IN ('message', 'answer', 'comment', 'function_calls')"
+            )).fetchall()
+            
+            needs_fix = any(row[1] != 'utf8mb4' for row in result if row[1])
+            
+            if not needs_fix:
+                return False
+            
+            logger.info("🔧 Fixing UTF8MB4 encoding for text columns...")
+            
+            # Изменяем кодировку колонок
+            sqls = [
+                "ALTER TABLE chats_logs MODIFY COLUMN message TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "ALTER TABLE chats_logs MODIFY COLUMN answer TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "ALTER TABLE chats_logs MODIFY COLUMN comment TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "ALTER TABLE chats_logs MODIFY COLUMN function_calls TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+            ]
+            
+            for sql in sqls:
+                try:
+                    session.execute(text(sql))
+                except Exception as e:
+                    logger.debug(f"Column already utf8mb4 or error: {e}")
+            
+            session.commit()
+            logger.info("✅ UTF8MB4 encoding fixed")
+            return True
+            
+    except Exception as e:
+        logger.warning(f"UTF8MB4 fix skipped: {e}")
+        return False
+
+
 def run_migrations():
     logger.info("Starting auto-migrations for KPI system")
     
     changes = []
+    
+    # 🔧 ИСПРАВЛЕНИЕ КОДИРОВКИ (приоритет!)
+    if fix_utf8mb4_encoding():
+        changes.append('utf8mb4_encoding')
     
     if check_and_add_column('chats_logs', 'extracted_city', 'VARCHAR(100)'):
         changes.append('extracted_city')

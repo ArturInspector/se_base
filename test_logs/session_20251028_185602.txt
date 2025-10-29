@@ -1,0 +1,46 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 18:56:02 ===
+
+[18:56:14] КЛИЕНТ:
+Dсалам алЙкум, в Рязани есть чё брат?
+
+--------------------------------------------------------------------------------
+
+[18:56:19] БОТ:
+💬 Я AI-бот SE Express (в тестировании). Здравствуйте! Скажите, сколько грузчиков и на сколько часов вам нужно в Рязани?
+Метаданные: {'extracted': {'intent': 'greeting', 'city': 'Рязань', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'unknown', 'action': 'ask_details', 'template_id': 'need_details', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+
+[18:56:25] КЛИЕНТ:
+а почем цена?
+
+--------------------------------------------------------------------------------
+
+[18:56:28] БОТ:
+Сколько грузчиков и на сколько часов? Это поможет рассчитать цену.
+Метаданные: {'extracted': {'intent': 'ask_price', 'city': 'Рязань', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'unknown', 'action': 'ask_details', 'template_id': 'need_details', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+
+[18:56:49] КЛИЕНТ:
+да я не знаю, мы переезжаем нам машину разгрузить. думаю часа хватит.
+
+--------------------------------------------------------------------------------
+
+[18:56:52] БОТ:
+Сколько грузчиков нужно для разгрузки?
+Метаданные: {'extracted': {'intent': 'ask_price', 'city': 'Рязань', 'people': 0, 'hours': 1, 'phone': '', 'keywords': ['переезд'], 'work_description': 'разгрузить машину', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.8}, 'customer_type': 'private', 'action': 'ask_details', 'template_id': 'need_details', 'deal_created': False, 'customer_type_confidence': 0.9}
+
+--------------------------------------------------------------------------------
+
+[18:57:02] КЛИЕНТ:
+2
+
+--------------------------------------------------------------------------------
+
+[18:57:07] БОТ:
+Стоимость: 2 грузчика × 1 час × 748₽/ч = 1496₽. Укажите ваш телефон для оформления заявки.
+Метаданные: {'extracted': {'intent': 'order_movers', 'city': 'Рязань', 'people': 2, 'hours': 1, 'phone': '', 'keywords': [], 'work_description': 'разгрузить', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'private', 'action': 'show_price_ask_phone', 'template_id': 'private_with_price', 'deal_created': False, 'customer_type_confidence': 0.7, 'pricing': {'city': 'Рязань', 'ppr': 748, 'min_hours': 2.0, 'people': 2, 'hours': 1, 'hours_charged': 2.0, 'total': 2992.0}}
+
+--------------------------------------------------------------------------------
+

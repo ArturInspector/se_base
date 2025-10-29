@@ -7,6 +7,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 import users
 import bot
 import cities
@@ -50,6 +51,7 @@ app.secret_key = 'k=00=r3wgjh4 gh423u9tg43ug 43ugbfu23tr23'
 app.register_blueprint(avito.app)
 app.register_blueprint(avito_old.app)
 app.register_blueprint(avito_new.app)
+app.register_blueprint(avito_gruz.app)
 app.register_blueprint(dashboard.app)
 app.register_blueprint(kpi_dashboard_bp)  # ← KPI Dashboard
 app.register_blueprint(members.app)

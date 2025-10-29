@@ -1,0 +1,13 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 23:14:32 ===
+
+[23:15:15] КЛИЕНТ:
+Добрый вечер, как вы?
+
+--------------------------------------------------------------------------------
+
+[23:15:25] БОТ:
+💬 Я AI-бот SE Express (в тестировании). Добрый вечер! В каком городе вы находитесь?
+Метаданные: {'extracted': {'intent': 'greeting', 'city': '', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'single_item_weight': 0, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'unknown', 'action': 'ask_city', 'template_id': 'need_city', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+

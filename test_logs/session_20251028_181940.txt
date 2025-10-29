@@ -1,0 +1,57 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 18:19:40 ===
+
+[18:19:46] КЛИЕНТ:
+здравствуйте, ребята есть?
+
+--------------------------------------------------------------------------------
+
+[18:19:49] БОТ:
+💬 Я AI-бот SE Express (в тестировании). В каком городе вам нужны грузчики?
+Метаданные: {'extracted': {'intent': 'greeting', 'city': '', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'unknown', 'action': 'ask_city', 'template_id': 'need_city', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+
+[18:20:43] КЛИЕНТ:
+В Москве, пожалуйста. на 8 часов, на овощебазу ребят там разрузить туда сюда.
+
+--------------------------------------------------------------------------------
+
+[18:20:48] БОТ:
+Для работы на овощебазе в Москве на 8 часов можем организовать бригаду грузчиков. Напишите, пожалуйста, сколько человек вам нужно, чтобы мы могли уточнить детали.
+Метаданные: {'extracted': {'intent': 'order_movers', 'city': 'Москва', 'people': 0, 'hours': 8, 'phone': '', 'keywords': [], 'work_description': 'на овощебазу ребят там разрузить туда сюда', 'has_special_items': False, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.9}, 'customer_type': 'unknown', 'action': 'clarify_large_order', 'template_id': 'clarify_large_order', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+
+[18:21:16] КЛИЕНТ:
+ну человека 2-3, скок там. вот, и сколько будет стоить?
+
+--------------------------------------------------------------------------------
+
+[18:21:23] БОТ:
+Сколько точно грузчиков вам нужно: 2 или 3? Цену смогу назвать после уточнения количества.
+Метаданные: {'extracted': {'intent': 'ask_price', 'city': 'Москва', 'people': 2, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.8}, 'customer_type': 'private', 'action': 'ask_details', 'template_id': 'need_details', 'deal_created': False, 'customer_type_confidence': 0.7}
+
+--------------------------------------------------------------------------------
+
+[18:21:27] КЛИЕНТ:
+3
+
+--------------------------------------------------------------------------------
+
+[18:21:29] БОТ:
+В каком городе?
+Метаданные: {'extracted': {'intent': 'ask_price', 'city': '', 'people': 3, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.8}, 'customer_type': 'private', 'action': 'ask_city', 'template_id': 'need_city', 'deal_created': False, 'customer_type_confidence': 0.7}
+
+--------------------------------------------------------------------------------
+
+[18:21:37] КЛИЕНТ:
+Москва, сказал же уже.
+
+--------------------------------------------------------------------------------
+
+[18:21:40] БОТ:
+Сколько грузчиков и на сколько часов?
+Метаданные: {'extracted': {'intent': 'clarification', 'city': 'Москва', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': '', 'has_special_items': False, 'floor': 0, 'has_elevator': False, 'urgency': 'unknown', 'is_forbidden_service': False, 'confidence': 0.8}, 'customer_type': 'unknown', 'action': 'ask_details', 'template_id': 'need_details', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+

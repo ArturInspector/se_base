@@ -1,0 +1,13 @@
+=== ТЕСТОВАЯ СЕССИЯ 2025-10-28 16:55:53 ===
+
+[16:55:53] КЛИЕНТ:
+Здравствуйте, нужно вынести человека с 5 этажа
+
+--------------------------------------------------------------------------------
+
+[16:55:56] БОТ:
+В каком городе вам нужны грузчики?
+Метаданные: {'extracted': {'intent': 'greeting', 'city': '', 'people': 0, 'hours': 0, 'phone': '', 'keywords': [], 'work_description': 'вынести человека с 5 этажа', 'has_special_items': False, 'floor': 5, 'has_elevator': False, 'urgency': 'unknown', 'confidence': 0.8}, 'customer_type': 'unknown', 'action': 'ask_city', 'template_id': 'need_city', 'deal_created': False, 'customer_type_confidence': 0.5}
+
+--------------------------------------------------------------------------------
+
