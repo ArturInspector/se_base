@@ -171,7 +171,7 @@ class AvitoAIProcessor:
                 ad_data['url'] = constructed_url
                 logger.debug(f"Создан дефолтный URL: {constructed_url}")
         
-        ad_city = self.city_extractor.extract_city_from_message('тест', ad_data)
+        ad_city = self.city_extractor.extract_city_from_message('', ad_data)
         logger.debug(f"Определен город объявления: {ad_city}")
         
         message_city = self.city_extractor.extract_city_from_message(message, ad_data)

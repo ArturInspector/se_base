@@ -55,8 +55,9 @@ class SimpleResponder:
     """Простой автоответчик без сложного AI"""
     
     def __init__(self):
+        logger.info("SimpleResponder: начало инициализации")
         self._load_pricing()
-        logger.info("SimpleResponder инициализирован")
+        logger.info("SimpleResponder: инициализирован успешно")
     
     def _load_pricing(self):
         """Загрузка прайсов из JSON"""
@@ -80,6 +81,23 @@ class SimpleResponder:
                 return True
         
         return False
+    
+    def _extract_city_from_message(self, message: str) -> str:
+        """Извлечение города из сообщения по базе городов"""
+        message_lower = message.lower()
+        for city_name in self.pricing.keys():
+            if city_name.lower() in message_lower:
+                logger.info(f"📍 Город найден в сообщении: '{city_name}'")
+                return city_name
+        city_pattern = r'(?:город|г\.?)\s+([А-Яа-яЁё\-\s]+)'
+        match = re.search(city_pattern, message)
+        if match:
+            potential_city = match.group(1).strip().title()
+            if potential_city in self.pricing:
+                logger.info(f"Город найден через паттерн: '{potential_city}'")
+                return potential_city
+        
+        return None
     
     def _extract_phone(self, message: str) -> str:
         """Извлечение телефона regex - поддерживает разные форматы"""
@@ -190,42 +208,54 @@ class SimpleResponder:
         Returns:
             Ответ для клиента
         """
-        logger.info(f"🔍 SimpleResponder: message='{message[:50]}...', city={city}")
+        try:
+            logger.info(f"🔍 SimpleResponder.process: START message='{message[:50] if len(message) > 50 else message}', city={city}, chat_id={chat_id}")
+            
+            # Если город не определен из объявления, пытаемся извлечь из сообщения
+            if not city:
+                logger.debug("SimpleResponder.process: city not provided, extracting from message")
+                city = self._extract_city_from_message(message)
+                if city:
+                    logger.info(f"✅ Город извлечен из сообщения: {city}")
+            
+            logger.debug("SimpleResponder.process: extracting phone")
+            phone = self._extract_phone(message)
+            
+            logger.debug("SimpleResponder.process: checking legal keywords")
+            has_legal_keywords = self._has_legal_keywords(message)
+        except Exception as e:
+            logger.error(f"❌ SimpleResponder.process: Ошибка на начальном этапе: {e}")
+            raise
         
-        # Извлечение телефона из любого сообщения
-        phone = self._extract_phone(message)
-        has_legal_keywords = self._has_legal_keywords(message)
+        logger.info(f"🔍 Телефон: {'✅ ' + phone if phone else '❌ нет'} | Legal keywords: {'✅' if has_legal_keywords else '❌'} | Город: {city or 'не определен'}")
         
-        logger.info(f"🔍 Телефон: {'✅ ' + phone if phone else '❌ нет'} | Legal keywords: {'✅' if has_legal_keywords else '❌'}")
-        
-        # 1. LEGAL KEYWORDS + ТЕЛЕФОН → создать legal deal
         if has_legal_keywords and phone:
+            logger.info(f"SimpleResponder: Legal keywords + phone → creating legal deal")
             deal_id = self._create_deal_legal(phone, city, message, chat_id)
             if deal_id == 'ERROR':
-                return "Произошла ошибка при создании заявки. Пожалуйста, напишите нам позже."
-            return f"Отлично! Заявка создана. Наш менеджер свяжется с вами для персонального расчета в течение 15 минут."
+                response = "Произошла ошибка при создании заявки. Пожалуйста, напишите нам позже."
+                logger.info(f"SimpleResponder: returning error response")
+                return response
+            response = f"Отлично! Заявка создана. Наш менеджер свяжется с вами для персонального расчета в течение 15 минут."
+            logger.info(f"SimpleResponder: returning legal deal success response")
+            return response
         
-        # 2. LEGAL KEYWORDS БЕЗ ТЕЛЕФОНА → запросить телефон
         if has_legal_keywords and not phone:
             return "Для персонального расчета оставьте, пожалуйста, номер телефона."
         
-        # 3. ТЕЛЕФОН БЕЗ KEYWORDS → создать обычную сделку
         if phone and not has_legal_keywords:
             deal_id = self._create_deal_regular(phone, city or "Не указан", message, chat_id)
             if deal_id == 'ERROR':
                 return "Произошла ошибка при создании заявки. Пожалуйста, напишите нам позже или позвоните напрямую по телефону, указанному в объявлении."
             return f"Отлично! Заявка создана. Наш менеджер свяжется с вами в течение 15 минут. Спасибо за обращение!"
         
-        # 4. НЕТ ТЕЛЕФОНА И НЕТ KEYWORDS → показать прайс
-        # Если нет города → запросить
         if not city:
             return "Подскажите, пожалуйста, в каком городе вам нужны грузчики?"
         
-        # Если город не в базе → попросить телефон
         if city not in self.pricing:
             return f"К сожалению, мы пока не работаем в городе {city}. Оставьте номер телефона, и наш менеджер уточнит возможность выполнения заказа."
         
-        # Показать прайс города и попросить телефон
+
         min_price, min_hours = self._calculate_min_price(city)
         
         if min_price:

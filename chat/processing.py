@@ -188,15 +188,18 @@ def avito_chat(data, is_new=False):
         logger.error(f"avito_chat: Ошибка определения города: {city_error}")
 
     try:
+        logger.info(f"avito_chat: ⚡ ВЫЗОВ SIMPLE RESPONDER ⚡")
         from chat.ai.simple_responder import SimpleResponder
+        logger.info(f"avito_chat: SimpleResponder импортирован")
         
         responder = SimpleResponder()
+        logger.info(f"avito_chat: SimpleResponder создан, вызываем process()")
         ai_response = responder.process(
             message=model.payload.value.content.text,
             city=final_city,
             chat_id=model.payload.value.chat_id
         )
-        logger.info(f"avito_chat: SimpleResponder ответ сгенерирован")
+        logger.info(f"avito_chat: ✅ SimpleResponder ответ сгенерирован: '{ai_response[:50]}...'")
         
         if model.payload.value.user_id == config.Production.OLD_AVITO_ID:
             send_result = avito_old.api.send_message(model.payload.value.chat_id, ai_response)
