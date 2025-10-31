@@ -7,7 +7,6 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 import users
 import bot
 import cities
@@ -34,16 +33,7 @@ import spam
 import callstats_yandex
 import chatbot
 import avito_gruz
-from dashboard.kpi_dashboard import kpi_dashboard_bp
 init_db()
-
-try:
-    from chats_log.migrations import run_migrations
-    logger.info("Running auto-migrations...")
-    run_migrations()
-    logger.info("✅ Migrations complete")
-except Exception as e:
-    logger.warning(f"Auto-migration warning: {e}")
 
 app = Flask(__name__)
 app.config.from_object(config.Production)
@@ -51,9 +41,7 @@ app.secret_key = 'k=00=r3wgjh4 gh423u9tg43ug 43ugbfu23tr23'
 app.register_blueprint(avito.app)
 app.register_blueprint(avito_old.app)
 app.register_blueprint(avito_new.app)
-app.register_blueprint(avito_gruz.app)
 app.register_blueprint(dashboard.app)
-app.register_blueprint(kpi_dashboard_bp)  # ← KPI Dashboard
 app.register_blueprint(members.app)
 app.register_blueprint(cities.app)
 app.register_blueprint(whatsapp.app)

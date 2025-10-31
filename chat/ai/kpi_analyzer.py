@@ -1,4 +1,5 @@
 """
+<<<<<<< HEAD
 KPI Analyzer - анализ метрик AI бота
 
 Собирает статистику:
@@ -13,6 +14,11 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, or_
 from db import Session
 from chats_log.entities import ChatLog, ConversationGrade
+=======
+KPI Analyzer - заглушка для совместимости
+"""
+import logging
+>>>>>>> 0d89f94 (final commit1)
 
 logger = logging.getLogger(__name__)
 
