@@ -37,10 +37,6 @@ class AvitoAIProcessor:
         self.prompt_builder = PromptBuilder(self.pricing_calculator.pricing_data)
         self.context_manager = DialogueContextManager()
         
-        self._last_function_calls = []
-        self._last_deal_created = False
-        self._last_deal_id = None
-        
         self.use_openai = self._init_openai_client()
     
     def _init_openai_client(self) -> bool:
@@ -175,7 +171,7 @@ class AvitoAIProcessor:
                 ad_data['url'] = constructed_url
                 logger.debug(f"Создан дефолтный URL: {constructed_url}")
         
-        ad_city = self.city_extractor.extract_city_from_message('тест', ad_data)
+        ad_city = self.city_extractor.extract_city_from_message('', ad_data)
         logger.debug(f"Определен город объявления: {ad_city}")
         
         message_city = self.city_extractor.extract_city_from_message(message, ad_data)
@@ -191,7 +187,6 @@ class AvitoAIProcessor:
             logger.debug(f"Финальный город: {final_city}")
         
         return ad_data
-    
     
     def process_message(self, message: str, user_id: int, ad_data: dict = None, chat_id: str = None) -> str:
         """
@@ -230,9 +225,8 @@ class AvitoAIProcessor:
         user_id: int, 
         ad_data: dict = None, 
         chat_id: str = None,
-        use_functions: bool = True,
-        return_metadata: bool = False
-    ):
+        use_functions: bool = True
+    ) -> str:
         """
         Обработка сообщения с поддержкой OpenAI Function Calling
         
@@ -242,16 +236,11 @@ class AvitoAIProcessor:
             ad_data: Данные объявления (город, item_id и т.д.)
             chat_id: ID чата для истории
             use_functions: Включить function calling (по умолчанию True)
-            return_metadata: Вернуть метаданные о функциях и сделках
             
         Returns:
-            str | tuple: Ответ для клиента, или (ответ, metadata) если return_metadata=True
+            str: Ответ для клиента
         """
         logger.info(f"[AVITO_BOT]Обработка с functions: '{message[:50]}...'")
-        
-        self._last_function_calls = []
-        self._last_deal_created = False
-        self._last_deal_id = None
         
         try:
             if chat_id:
@@ -259,10 +248,7 @@ class AvitoAIProcessor:
             
             if not self.use_openai or not self.openai_client:
                 logger.warning("[AVITO_BOT]OpenAI недоступен, используем fallback без functions")
-                fallback = self._get_fallback_response(message, ad_data, chat_id)
-                if return_metadata:
-                    return fallback, {'function_calls': [], 'deal_created': False, 'deal_id': None}
-                return fallback
+                return self._get_fallback_response(message, ad_data, chat_id)
             
             response = self._get_openai_response_with_functions(
                 message=message,
@@ -278,24 +264,13 @@ class AvitoAIProcessor:
             if chat_id and response:
                 self.add_to_dialogue_context(chat_id, response, is_user=False)
             
-            if return_metadata:
-                metadata = {
-                    'function_calls': self._last_function_calls,
-                    'deal_created': self._last_deal_created,
-                    'deal_id': self._last_deal_id
-                }
-                return response, metadata
-            
             return response
             
         except Exception as e:
             logger.error(f"[AVITO_BOT]Ошибка при обработке с functions: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            fallback = self._get_fallback_response(message, ad_data, chat_id)
-            if return_metadata:
-                return fallback, {'function_calls': self._last_function_calls, 'deal_created': False, 'deal_id': None}
-            return fallback
+            return self._get_fallback_response(message, ad_data, chat_id)
     
     def _get_openai_response_with_functions(
         self,
@@ -469,13 +444,6 @@ class AvitoAIProcessor:
             
             function_result = execute_function(function_name, function_args, context)
             result_formatted = format_function_result_for_ai(function_result)
-            
-            self._last_function_calls.append(function_name)
-            if function_name in ['create_bitrix_deal', 'create_bitrix_deal_legal']:
-                if function_result.get('success') and function_result.get('deal_id'):
-                    self._last_deal_created = True
-                    self._last_deal_id = function_result['deal_id']
-                    logger.info(f"✅ Сделка #{self._last_deal_id} создана через {function_name}")
             
             messages.append({
                 "role": "tool",
